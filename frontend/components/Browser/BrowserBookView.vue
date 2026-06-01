@@ -26,9 +26,12 @@
               object-fit='contain',
               width='640',
               lazy
-            )
+            >
               template(#placeholder)
                 NSkeleton(h='640px', w='640px', max-w='100%')
+              template(#fallback)
+                NIcon(size='64'): IconFileUnknown
+            </NImage>
           .book-page-text(
             v-else-if='item.previewType === "text" || item.previewType === "markdown"',
             max-w-860px,
@@ -66,6 +69,8 @@
 <script setup lang="ts">
 import type { StorageListObject, StorageListResult } from '@/models/BucketClient'
 import { FileHelper } from '@/utils/FileHelper'
+import { IconFileUnknown } from '@tabler/icons-vue'
+import { NIcon } from 'naive-ui'
 
 const props = withDefaults(
   defineProps<{
