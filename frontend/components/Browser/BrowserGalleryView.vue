@@ -41,7 +41,7 @@
             v-if='item.previewType === "image"',
             @click.stop,
             @load='resizeWaterfall',
-            :src='item.cdnUrl',
+            :src='item.thumbnailUrl',
             :preview-src='item.cdnUrl',
             :alt='item.key',
             w-full,
@@ -155,11 +155,13 @@ const list = computed<
     (
       item: StorageListObject & {
         cdnUrl?: string
+        thumbnailUrl?: string
         icon?: Component
         previewType?: ReturnType<typeof FileHelper.getPreviewType>
       }
     ) => {
       item.cdnUrl = bucket.getCDNUrl(item)
+      item.thumbnailUrl = bucket.getThumbnailUrl(item, 400, 400)
       item.previewType = FileHelper.getPreviewType(item)
       item.icon = FileHelper.getObjectIcon(item)
       return item
