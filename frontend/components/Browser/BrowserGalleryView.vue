@@ -17,14 +17,14 @@
     .grid(gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
       NSkeleton(v-for='_ in 20', h-200px, rounded-lg)
 
-  .gallery-grid(v-else, grid, gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
+  .gallery-grid(v-else)
     NCard.file-item-card(
       v-for='(item, index) in list',
       :key='item.key',
       @click='onClickItem(item)',
       :content-style='{ padding: 0 }',
       :style='item.key === "/" ? { opacity: "50%", pointerEvents: "none" } : { cursor: "pointer" }',
-      overflow-hidden
+      class='overflow-hidden'
     )
       template(#cover)
         .image-container(v-if='item.previewType === "image"', h-full)
@@ -36,9 +36,9 @@
             loading='lazy',
             @error='handleImageError(item)'
           )
-          .error-placeholder(v-else, flex, items-center, justify-center, h-full, w-full, bg='gray-100 dark:gray-800)
+          .error-placeholder(v-else, flex, items-center, justify-center, h-full, w-full, bg='gray-100 dark:gray-800')
             component(:is='IconPhoto', w-16, h-16, opacity-60)
-        .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-60)
+        .folder-icon-wrapper(v-else, class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
           component(:is='item.icon', w-16, h-16, opacity-60)
       template(#default)
         .p-3
@@ -216,11 +216,12 @@ const onSelectAction = (action: string, item: StorageListObject) => {
 .file-item-card
   :deep(.n-card)
     height: 100%
-  
+
   :deep(.n-card-cover)
     line-height: 0
     overflow: hidden
     height: 240px
+    min-height: 240px
     background-color: #f5f5f5
 
     img
@@ -229,10 +230,18 @@ const onSelectAction = (action: string, item: StorageListObject) => {
       object-fit: cover
       display: block
       transition: transform 0.25s ease-in-out
-      
+
       &:hover
         transform: scale(1.05)
 
 .gallery-grid
   display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 1rem
+
+  @media (min-width: 768px)
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+
+  @media (min-width: 1024px)
+    grid-template-columns: repeat(4, minmax(0, 1fr))
 </style>
