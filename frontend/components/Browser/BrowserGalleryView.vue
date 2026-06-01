@@ -27,18 +27,14 @@
       overflow-hidden
     )
       template(#cover)
-        NImage(
+        img(
           v-if='item.previewType === "image"',
           @click.stop,
           :src='item.thumbnailUrl',
-          :preview-src='item.cdnUrl',
           :alt='item.key',
-          :width='400',
-          :height='400',
-          :object-fit='"cover"',
-          lazy
+          loading='lazy'
         )
-        .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-48)
+        .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-60)
           component(:is='item.icon', w-16, h-16, opacity-60)
       template(#default)
         .p-3
@@ -194,19 +190,23 @@ const onSelectAction = (action: string, item: StorageListObject) => {
   background-color: transparent
 
 .file-item-card
+  :deep(.n-card)
+    height: 100%
+  
   :deep(.n-card-cover)
     line-height: 0
     overflow: hidden
-    height: 192px
-    
+    height: 240px
+    background-color: #f5f5f5
+
     img
       width: 100%
       height: 100%
+      object-fit: cover
       display: block
       transition: transform 0.25s ease-in-out
-    
-    &:hover
-      img
+      
+      &:hover
         transform: scale(1.05)
 
 .gallery-grid
