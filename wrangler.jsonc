@@ -3,7 +3,7 @@
   "compatibility_date": "2026-01-14",
   "main": "./backend/index.ts",
   "assets": {
-    "directory": "./dist/assets",
+    "directory": "./dist/client",
     "not_found_handling": "single-page-application",
   },
   "compatibility_flags": ["nodejs_compat"],
