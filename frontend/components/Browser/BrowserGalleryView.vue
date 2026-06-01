@@ -14,50 +14,66 @@
         | {{ item.label }}
 
   .placeholder(v-if='list.length <= 0 && isLoading')
-    .grid(gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
+    .grid(grid-cols-4, gap-3)
       NSkeleton(v-for='_ in 20', h-200px, rounded-lg)
 
-  .gallery-grid(v-else)
-    NCard.file-item-card(
-      v-for='(item, index) in list',
-      :key='item.key',
-      @click='onClickItem(item)',
-      :content-style='{ padding: 0 }',
-      :style='item.key === "/" ? { opacity: "50%", pointerEvents: "none" } : { cursor: "pointer" }',
-      class='overflow-hidden'
-    )
-      template(#cover)
-        NImage(
-          v-if='item.previewType === "image"',
-          @click.stop,
-          :src='getImageSrc(item)',
-          :preview-src='item.cdnUrl',
-          :alt='item.key',
-          lazy,
-          object-fit='cover',
-          height='240px',
-          width='100%',
-          @error='onImageError(item)'
-        )
-          template(#placeholder)
-            .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
-              component(:is='item.icon', w-16, h-16, opacity-60)
-          template(#fallback)
-            .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
-              component(:is='item.icon', w-16, h-16, opacity-60)
-        .folder-icon-wrapper(v-else, class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
-          component(:is='item.icon', w-16, h-16, opacity-60)
-      template(#default)
-        .p-3
-          NEllipsis(text-3, max-w-full, line-clamp-2) {{ item.key === '/' ? '/(root)' : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
-          .flex(items-center, mt-2)
-            .file-info.flex-1
-              NText(v-if='item.key.endsWith("/")', depth='3', block, text-2) {{ item.key === '/' ? 'root' : item.key === '../' ? 'parent' : 'folder' }}
-              NText(v-if='!item.key.endsWith("/")', depth='3', block, text-2) {{ new Date(item.uploaded || 0).toLocaleString() }}
-              NText(v-if='!item.key.endsWith("/")', depth='3', block, text-2) {{ FileHelper.formatFileSize(item.size) }}
-            .file-actions(v-if='!item.key.endsWith("/")', @click.stop)
-              NDropdown(:options='fileActionOptions', @select='(action) => onSelectAction(action, item)')
-                NButton(secondary, :render-icon='() => h(IconDots)', circle, size='small')
+  Waterfall(
+    v-else,
+    ref='waterfallRef',
+    :list='list',
+    :breakpoints='{ 9999: { rowPerView: 5 }, 1160: { rowPerView: 4 }, 900: { rowPerView: 3 }, 580: { rowPerView: 2 }, 360: { rowPerView: 1 } }',
+    :has-around-gutter='false',
+    :delay='100',
+    :animation-delay='150',
+    :animation-duration='500',
+    :pos-duration='150',
+    min-h='50vh'
+  )
+    template(#item='{ item, url, index }')
+      NCard.file-item-card(
+        @click='onClickItem(item)',
+        :content-style='{ padding: 0 }',
+        :style='item.key === "/" ? { opacity: "50%", pointerEvents: "none" } : { cursor: "pointer" }',
+        overflow-hidden
+      )
+        template(#cover)
+          NImage(
+            v-if='item.previewType === "image"',
+            @click.stop,
+            @load='resizeWaterfall',
+            @error='onImageError(item)',
+            :src='getImageSrc(item)',
+            :preview-src='item.cdnUrl',
+            :alt='item.key',
+            w-full,
+            h-auto,
+            max-h-60vh,
+            loading='lazy',
+            lazy,
+            inline-flex,
+            leading-0,
+            :width='item?.customMetadata?.width || undefined',
+            :height='item?.customMetadata?.height || undefined'
+          )
+            template(#placeholder)
+              .folder-icon-wrapper(flex, items-center, justify-center, py-6, bg='gray-100', dark:bg='gray-800', min-h-60vh)
+                component(:is='item.icon', w='64px', h='64px', opacity-60)
+            template(#fallback)
+              .folder-icon-wrapper(flex, items-center, justify-center, py-6, bg='gray-100', dark:bg='gray-800', min-h-60vh)
+                component(:is='item.icon', w='64px', h='64px', opacity-60)
+          .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-6, bg='gray-100', dark:bg='gray-800')
+            component(:is='item.icon', w='64px', h='64px', opacity-60)
+        template(#default)
+          .p-4
+            NEllipsis(text-4, max-w-full) {{ item.key === '/' ? '/(root)' : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
+            .flex(items-center)
+              .file-info.flex-1
+                NText(v-if='item.key.endsWith("/")', depth='3', block, text-3) {{ item.key === '/' ? 'root' : item.key === '../' ? 'parent' : 'folder' }}
+                NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ new Date(item.uploaded || 0).toLocaleString() }}
+                NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ FileHelper.formatFileSize(item.size) }}
+              .file-actions(v-if='!item.key.endsWith("/")', @click.stop)
+                NDropdown(:options='fileActionOptions', @select='(action) => onSelectAction(action, item)')
+                  NButton(secondary, :render-icon='() => h(IconDots)', circle, size='small')
 </template>
 
 <script setup lang="tsx">
@@ -68,13 +84,14 @@ import {
   IconDownload,
   IconForms,
   IconLink,
-  IconPhoto,
   IconSortAscending,
   IconSortDescending,
   IconTrash,
 } from '@tabler/icons-vue'
-import { useMessage, NImage, NText } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 import type { Component } from 'vue'
+import { Waterfall } from 'vue-waterfall-plugin-next'
+import 'vue-waterfall-plugin-next/dist/style.css'
 import type { GallerySortBy } from '@/stores/prefs'
 
 const props = defineProps<{
@@ -96,15 +113,16 @@ const bucket = useBucketStore()
 const imageLoadFailed = ref<Set<string>>(new Set())
 
 const getImageSrc = (item: StorageListObject & { thumbnailUrl?: string; cdnUrl?: string }) => {
-  if (imageLoadFailed.value.has(item.key)) {
-    return item.cdnUrl || ''
-  }
   return item.thumbnailUrl || item.cdnUrl || ''
 }
 
 const onImageError = (item: StorageListObject) => {
   if (!imageLoadFailed.value.has(item.key)) {
     imageLoadFailed.value.add(item.key)
+    console.error(`图片加载失败: ${item.key}`)
+    nextTick(() => {
+      resizeWaterfall()
+    })
   }
 }
 
@@ -175,6 +193,20 @@ const list = computed<
   )
 })
 
+const waterfallRef = useTemplateRef('waterfallRef')
+const resizeWaterfall = () => {
+  waterfallRef.value?.renderer()
+}
+useEventListener('resize', resizeWaterfall)
+watch(
+  computed(() => list.value.length),
+  () => {
+    nextTick(() => {
+      resizeWaterfall()
+    })
+  }
+)
+
 function onClickItem(item: StorageListObject) {
   emit('navigate', item)
 }
@@ -218,36 +250,11 @@ const onSelectAction = (action: string, item: StorageListObject) => {
   background-color: transparent
 
 .file-item-card
-  :deep(.n-card)
-    height: 100%
-
   :deep(.n-card-cover)
     line-height: 0
-    overflow: hidden
-    height: 240px
-    min-height: 240px
-    background-color: #f5f5f5
-    display: flex
-    align-items: center
-    justify-content: center
-
-  :deep(.n-image)
-    width: 100%
-    height: 240px
-    display: block
-    transition: transform 0.25s ease-in-out
-
+    img
+      transition: transform 0.25s ease-in-out
     &:hover
-      transform: scale(1.05)
-
-.gallery-grid
-  display: grid
-  grid-template-columns: repeat(2, minmax(0, 1fr))
-  gap: 1rem
-
-  @media (min-width: 768px)
-    grid-template-columns: repeat(3, minmax(0, 1fr))
-
-  @media (min-width: 1024px)
-    grid-template-columns: repeat(4, minmax(0, 1fr))
+      img
+        transform: scale(1.05)
 </style>

@@ -20,15 +20,19 @@
         )
           .book-page-image(v-if='item.previewType === "image"', text-center)
             NImage(
-              :src='item.cdnUrl',
+              :src='getImageSrc(item)',
               :preview-src='item.cdnUrl',
               :alt='item.key',
               object-fit='contain',
               width='640',
-              lazy
+              lazy,
+              @error='onImageError(item)'
             )
               template(#placeholder)
                 NSkeleton(h='640px', w='640px', max-w='100%')
+              template(#fallback)
+                .book-page-fallback(flex, items-center, justify-center, min-h-640px, bg-gray-100, dark:bg-gray-800)
+                  NIcon(:component='FileHelper.getObjectIcon(item)', size='64', opacity-60)
           .book-page-text(
             v-else-if='item.previewType === "text" || item.previewType === "markdown"',
             max-w-860px,
@@ -77,6 +81,19 @@ const props = withDefaults(
 const bucket = useBucketStore()
 const route = useRoute()
 const currentBucket = computed(() => (route.params as any).bucket as string)
+
+const imageLoadFailed = ref<Set<string>>(new Set())
+
+const getImageSrc = (item: StorageListObject & { cdnUrl?: string }) => {
+  return item.cdnUrl || ''
+}
+
+const onImageError = (item: StorageListObject) => {
+  if (!imageLoadFailed.value.has(item.key)) {
+    imageLoadFailed.value.add(item.key)
+    console.error(`图片加载失败: ${item.key}`)
+  }
+}
 
 const bookName = computed(() => {
   if (!props.payload) return 'Loading...'

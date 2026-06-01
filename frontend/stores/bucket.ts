@@ -164,8 +164,8 @@ export const useBucketStore = defineStore('bucket', () => {
     if (!filePath) {
       return ''
     }
-    const cdnBaseUrl =
-      bucketCdnMap.value[bucketName] || (bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL)
+    // 优先使用本地代理，避免 CDN 的 Cloudflare 验证问题
+    const cdnBaseUrl = bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL
     const url = new URL(filePath, cdnBaseUrl)
     return url.toString()
   }
@@ -180,8 +180,9 @@ export const useBucketStore = defineStore('bucket', () => {
     const filePath = typeof payload === 'string' ? payload : payload.key
     if (!filePath) return ''
 
-    const templateUrl = bucketEdgeThumbnailMap.value[bucketName]
-    const configuredCdnUrl = bucketCdnMap.value[bucketName]
+    // 优先使用本地代理，避免 CDN 的 Cloudflare 验证问题
+    const templateUrl = null // 暂时禁用缩略图模板 URL
+    const configuredCdnUrl = null // 也暂时禁用
 
     if (templateUrl && configuredCdnUrl) {
       // Encode each path segment individually to preserve slashes
