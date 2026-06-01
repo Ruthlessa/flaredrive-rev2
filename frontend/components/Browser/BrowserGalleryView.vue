@@ -21,12 +21,13 @@
     v-else,
     ref='waterfallRef',
     :list='list',
-    :breakpoints='{ 9999: { rowPerView: 5 }, 1160: { rowPerView: 4 }, 900: { rowPerView: 3 }, 580: { rowPerView: 2 }, 360: { rowPerView: 1 } }',
-    :has-around-gutter='false',
-    :delay='100',
-    :animation-delay='150',
-    :animation-duration='500',
-    :pos-duration='150',
+    :breakpoints='{ 9999: { rowPerView: 4 }, 1160: { rowPerView: 3 }, 900: { rowPerView: 2 }, 600: { rowPerView: 1 } }',
+    :gutter='12',
+    :has-around-gutter='true',
+    :delay='0',
+    :animation-delay='0',
+    :animation-duration='0',
+    :pos-duration='0',
     min-h='50vh'
   )
     template(#item='{ item, url, index }')
