@@ -184,12 +184,12 @@ export const useBucketStore = defineStore('bucket', () => {
     const configuredCdnUrl = bucketCdnMap.value[bucketName]
 
     if (templateUrl && configuredCdnUrl) {
-      // Replace variables
+      const encodedFilePath = encodeURIComponent(filePath)
       return templateUrl
         .replace(/{cdn_base_url}/g, configuredCdnUrl)
         .replace(/{width}/g, width.toString())
         .replace(/{height}/g, height.toString())
-        .replace(/{file_key}/g, filePath)
+        .replace(/{file_key}/g, encodedFilePath)
     }
 
     return getCDNUrl(payload, bucketName)
