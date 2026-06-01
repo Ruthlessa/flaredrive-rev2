@@ -222,11 +222,11 @@ const columns = computed(() => {
                   icon: () => <IconLink />,
                 },
                 { label: 'Download', key: 'download', icon: () => <IconDownload /> },
-                {
-                  label: isPublic ? 'Make Private' : 'Make Public',
-                  key: 'toggle_public',
-                  icon: isPublic ? () => <IconWorldOff /> : () => <IconWorld />,
-                },
+                // {
+                //   label: isPublic ? 'Make Private' : 'Make Public',
+                //   key: 'toggle_public',
+                //   icon: isPublic ? () => <IconWorldOff /> : () => <IconWorld />,
+                // },
                 { label: 'Rename', key: 'rename', icon: () => <IconForms /> },
                 { label: () => <NText type="error">Delete</NText>, key: 'delete', icon: () => <IconTrash /> },
               ]}

@@ -40,9 +40,10 @@
         NButton(size='small', type='info', secondary, @click='handleCopyURL')
           template(#icon): NIcon: IconCopy
           | URL
-        NButton(size='small', @click='emit("toggle-public", item)')
+        <!-- 暂未实现 -->
+        <!-- NButton(size='small', @click='emit("toggle-public", item)')
           template(#icon): NIcon: component(:is='isPublic ? IconWorldOff : IconWorld')
-          | {{ isPublic ? 'Private' : 'Public' }}
+          | {{ isPublic ? 'Private' : 'Public' }} -->
         NButton(size='small', type='error', secondary, @click='emit("delete", item)')
           template(#icon): NIcon: IconTrash
 
