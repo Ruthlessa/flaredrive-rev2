@@ -68,6 +68,7 @@ export class BucketClient {
     options?: {
       contentType?: string
       metadata?: Record<string, string>
+      onUploadProgress?: (progress: { loaded: number; total: number; percentage: number }) => void
     }
   ) {
     const metadata = options?.metadata || {}
@@ -90,6 +91,14 @@ export class BucketClient {
         'Content-Type': contentType || 'application/octet-stream',
       },
       timeout: 0,
+      onUploadProgress: (progressEvent) => {
+        if (options?.onUploadProgress && progressEvent.total) {
+          const loaded = progressEvent.loaded
+          const total = progressEvent.total
+          const percentage = Math.floor((loaded / total) * 100)
+          options.onUploadProgress({ loaded, total, percentage })
+        }
+      },
     })
   }
 

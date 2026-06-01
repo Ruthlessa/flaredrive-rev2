@@ -392,13 +392,22 @@ export namespace FileHelper {
   export function getPreviewType(item?: StorageListObject | null) {
     if (!item) return 'unknown'
     const { contentType, ext } = FileHelper.getSimpleFileInfoByObject(item)
+    console.info('[PreviewType] Detecting:', { key: item.key, contentType, ext })
+    
     if (ext === 'md') return 'markdown'
 
     // PDF priority
     if (['pdf'].includes(ext) || contentType === 'application/pdf') return 'iframe'
 
-    if (contentType.startsWith('image/') && !contentType.includes('pdf')) return 'image'
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image'
+    // Image detection - prioritize extension for unknown content types
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
+      console.info('[PreviewType] Detected image by extension:', ext)
+      return 'image'
+    }
+    if (contentType && contentType.startsWith('image/') && !contentType.includes('pdf')) {
+      console.info('[PreviewType] Detected image by content-type:', contentType)
+      return 'image'
+    }
 
     if (contentType.startsWith('video/')) return 'video'
     if (['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'].includes(ext)) return 'video'
@@ -430,6 +439,7 @@ export namespace FileHelper {
     )
       return 'text'
 
+    console.info('[PreviewType] Unknown type, falling back')
     return 'unknown'
   }
 }

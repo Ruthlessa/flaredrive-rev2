@@ -158,16 +158,34 @@ export const useBucketStore = defineStore('bucket', () => {
 
   const getCDNUrl = (payload: StorageListObject | string, bucketName = currentBucketName.value) => {
     if (!payload) {
+      console.warn('[CDN] Payload is empty')
       return ''
     }
     const filePath = typeof payload === 'string' ? payload : payload.key
     if (!filePath) {
+      console.warn('[CDN] File path is empty')
       return ''
     }
-    const cdnBaseUrl =
-      bucketCdnMap.value[bucketName] || (bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL)
-    const url = new URL(filePath, cdnBaseUrl)
-    return url.toString()
+    
+    const configuredCdnUrl = bucketCdnMap.value[bucketName]
+    const fallbackUrl = bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL
+    const cdnBaseUrl = configuredCdnUrl || fallbackUrl
+    
+    console.info('[CDN] Generating URL:', {
+      bucketName,
+      configuredCdnUrl,
+      fallbackUrl,
+      using: cdnBaseUrl,
+      filePath
+    })
+    
+    try {
+      const url = new URL(filePath, cdnBaseUrl)
+      return url.toString()
+    } catch (e) {
+      console.error('[CDN] Error generating URL:', e)
+      return filePath
+    }
   }
 
   const getThumbnailUrl = (
@@ -184,15 +202,22 @@ export const useBucketStore = defineStore('bucket', () => {
     const configuredCdnUrl = bucketCdnMap.value[bucketName]
 
     if (templateUrl && configuredCdnUrl) {
-      // Encode each path segment individually to preserve slashes
-      const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/')
-      return templateUrl
-        .replace(/{cdn_base_url}/g, configuredCdnUrl)
-        .replace(/{width}/g, width.toString())
-        .replace(/{height}/g, height.toString())
-        .replace(/{file_key}/g, encodedFilePath)
+      try {
+        // Encode each path segment individually to preserve slashes
+        const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/')
+        const result = templateUrl
+          .replace(/{cdn_base_url}/g, configuredCdnUrl)
+          .replace(/{width}/g, width.toString())
+          .replace(/{height}/g, height.toString())
+          .replace(/{file_key}/g, encodedFilePath)
+        console.info('[Thumbnail] Generated URL:', result)
+        return result
+      } catch (e) {
+        console.error('[Thumbnail] Error generating thumbnail URL:', e)
+      }
     }
 
+    // Fallback to CDN URL
     return getCDNUrl(payload, bucketName)
   }
 
@@ -247,6 +272,7 @@ export const useBucketStore = defineStore('bucket', () => {
     key: string,
     file: File,
     metadata: Record<string, string> = {},
+    progressOptions?: { onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void },
     options?: { ignoreRandom?: boolean }
   ) => {
     const normalizedKey = key.replace(/^\/+/, '')
@@ -286,6 +312,7 @@ export const useBucketStore = defineStore('bucket', () => {
       const { data } = await client.upload(targetKey, file, {
         contentType,
         metadata,
+        onUploadProgress: progressOptions?.onProgress,
       })
       result = (data || {
         key: targetKey,
@@ -309,6 +336,14 @@ export const useBucketStore = defineStore('bucket', () => {
           'Content-Type': contentType,
         },
         timeout: 0,
+        onUploadProgress: (progressEvent) => {
+          if (progressOptions?.onProgress && progressEvent.total) {
+            const loaded = progressEvent.loaded
+            const total = progressEvent.total
+            const percentage = Math.floor((loaded / total) * 100)
+            progressOptions.onProgress({ loaded, total, percentage })
+          }
+        },
       })
 
       // 4. Record History
@@ -397,8 +432,13 @@ export const useBucketStore = defineStore('bucket', () => {
       error: Error
     }[]
   >([])
+  const uploadProgressMap = ref<Record<string, { loaded: number; total: number; percentage: number>>({})
 
-  const addToUploadQueue = (key: string, file: File, options?: { ignoreRandom?: boolean }) => {
+  const updateUploadProgress = (key: string, progress: { loaded: number; total: number; percentage: number }) => {
+    uploadProgressMap.value[key] = progress
+  }
+
+  const addToUploadQueue = (key: string, file: File, options?: { ignoreRandom?: boolean; onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void }) => {
     const normalizedKey = key.replace(/^\/+/, '')
     const existing = pendinUploadList.value.find((item) => item.key === normalizedKey)
     if (existing) {
@@ -419,7 +459,12 @@ export const useBucketStore = defineStore('bucket', () => {
       if (abortController.signal.aborted) {
         throw new Error('Upload aborted')
       }
-      const { data } = await uploadOne(normalizedKey, file, {}, options).catch((error) => {
+      const { data } = await uploadOne(normalizedKey, file, {}, { 
+        onProgress: (progress) => {
+          updateUploadProgress(normalizedKey, progress)
+          options?.onProgress?.(progress)
+        }
+      }, options).catch((error) => {
         console.error('Upload failed', normalizedKey, file, error)
         uploadFailedList.value.push({
           key: normalizedKey,
@@ -465,5 +510,7 @@ export const useBucketStore = defineStore('bucket', () => {
     currentBatchPercentage,
     uploadFailedList,
     togglePublic,
+    uploadProgressMap,
+    updateUploadProgress,
   }
 })

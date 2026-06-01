@@ -104,6 +104,16 @@ const nmessage = useMessage()
 
 const bucket = useBucketStore()
 
+function handleImageError(item: any) {
+  console.error('[Gallery] Failed to load image:', {
+    key: item.key,
+    thumbnailUrl: item.thumbnailUrl,
+    cdnUrl: item.cdnUrl
+  })
+  // Fallback to showing icon instead of broken image
+  item.previewType = 'unknown'
+}
+
 const prefs = usePrefsStore()
 const { gallerySortBy: sortBy, gallerySortOrder: sortOrder } = storeToRefs(prefs)
 const changeSort = (key: GallerySortBy) => {
