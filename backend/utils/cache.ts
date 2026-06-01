@@ -53,8 +53,8 @@ export const cacheGetString = async (ctx: Context<HonoEnv>, key: string): Promis
   try {
     const value = await kv.get(key)
     if (typeof value === 'string') {
-      // Super-short memory layer to shave off repeated KV reads in bursts.
-      memorySet(key, value, 3)
+      // Longer memory layer to reduce repeated KV reads
+      memorySet(key, value, 30)
       return value
     }
     return null

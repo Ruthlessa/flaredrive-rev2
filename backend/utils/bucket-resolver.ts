@@ -1,8 +1,17 @@
 import { eq } from 'drizzle-orm'
 import { buckets as bucketsTable } from '../../db/schema.js'
 import { getDb } from './db.js'
+import { cacheGetJson, cachePutJson, cacheDelete } from './cache.js'
+
+const BUCKET_CONFIG_CACHE_KEY = (id: string) => `v1:bucket:config:${id}`
+const BUCKET_CONFIG_TTL_SECONDS = 300
 
 export const getBucketConfigById = async (ctx: any, id: string) => {
+  const cached = await cacheGetJson<any>(ctx, BUCKET_CONFIG_CACHE_KEY(id))
+  if (cached) {
+    return cached
+  }
+
   const db = getDb(ctx)
   const row = await db
     .select({
@@ -21,7 +30,17 @@ export const getBucketConfigById = async (ctx: any, id: string) => {
     .where(eq(bucketsTable.id, id))
     .get()
 
-  return row || null
+  const result = row || null
+  if (result) {
+    await cachePutJson(ctx, BUCKET_CONFIG_CACHE_KEY(id), result, {
+      ttlSeconds: BUCKET_CONFIG_TTL_SECONDS,
+    })
+  }
+  return result
+}
+
+export const invalidateBucketConfigCache = async (ctx: any, id: string) => {
+  await cacheDelete(ctx, BUCKET_CONFIG_CACHE_KEY(id))
 }
 
 export const parseBucketPath = (reqPath: string, baseSegment: 'bucket' | 'raw') => {

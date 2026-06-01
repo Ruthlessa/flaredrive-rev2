@@ -6,6 +6,7 @@ import { buckets as bucketsTable } from '../../db/schema.js'
 import { generateBucketId, validateBucketConfigInput } from '../utils/bucket-config.js'
 import { getSessionUser } from '../utils/session.js'
 import { createAdapterFromConfig } from '../utils/bucket-utils.js'
+import { invalidateBucketConfigCache } from '../utils/bucket-resolver.js'
 
 export const buckets = new Hono<HonoEnv>()
 
