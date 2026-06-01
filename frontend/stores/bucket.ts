@@ -180,18 +180,7 @@ export const useBucketStore = defineStore('bucket', () => {
     const filePath = typeof payload === 'string' ? payload : payload.key
     if (!filePath) return ''
 
-    const templateUrl = bucketEdgeThumbnailMap.value[bucketName]
-    const configuredCdnUrl = bucketCdnMap.value[bucketName]
-
-    if (templateUrl && configuredCdnUrl) {
-      // Replace variables
-      return templateUrl
-        .replace(/{cdn_base_url}/g, configuredCdnUrl)
-        .replace(/{width}/g, width.toString())
-        .replace(/{height}/g, height.toString())
-        .replace(/{file_key}/g, filePath)
-    }
-
+    // Always prioritize using the same origin CDN URL first for better compatibility
     return getCDNUrl(payload, bucketName)
   }
 
