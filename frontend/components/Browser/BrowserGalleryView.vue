@@ -27,12 +27,16 @@
       class='overflow-hidden'
     )
       template(#cover)
-        img(
+        NImage(
           v-if='item.previewType === "image"',
           @click.stop,
           :src='item.thumbnailUrl',
+          :preview-src='item.cdnUrl',
           :alt='item.key',
-          loading='lazy'
+          lazy,
+          object-fit='cover',
+          height='240px',
+          width='100%'
         )
         .folder-icon-wrapper(v-else, class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
           component(:is='item.icon', w-16, h-16, opacity-60)
@@ -62,7 +66,7 @@ import {
   IconSortDescending,
   IconTrash,
 } from '@tabler/icons-vue'
-import { useMessage } from 'naive-ui'
+import { useMessage, NImage, NText } from 'naive-ui'
 import type { Component } from 'vue'
 import type { GallerySortBy } from '@/stores/prefs'
 
@@ -112,8 +116,6 @@ const list = computed<
     cdnUrl?: string
     icon?: Component
     previewType?: ReturnType<typeof FileHelper.getPreviewType>
-    imageError?: boolean
-    hasTriedOriginal?: boolean
   })[]
 >(() => {
   if (!props.payload) return [] as any
@@ -139,33 +141,16 @@ const list = computed<
         thumbnailUrl?: string
         icon?: Component
         previewType?: ReturnType<typeof FileHelper.getPreviewType>
-        imageError?: boolean
-        hasTriedOriginal?: boolean
       }
     ) => {
       item.cdnUrl = bucket.getCDNUrl(item)
       item.thumbnailUrl = bucket.getThumbnailUrl(item, 400, 400)
       item.previewType = FileHelper.getPreviewType(item)
       item.icon = FileHelper.getObjectIcon(item)
-      item.imageError = false
-      item.hasTriedOriginal = false
       return item
     }
   )
 })
-
-function handleImageError(item: any) {
-  if (!item.hasTriedOriginal) {
-    // First failure: try to use original image instead of thumbnail
-    item.thumbnailUrl = item.cdnUrl
-    item.hasTriedOriginal = true
-    console.warn('Thumbnail failed, trying original:', item.thumbnailUrl)
-  } else {
-    // Second failure: show error placeholder
-    item.imageError = true
-    console.warn('All image attempts failed:', item.thumbnailUrl)
-  }
-}
 
 function onClickItem(item: StorageListObject) {
   emit('navigate', item)
@@ -219,16 +204,18 @@ const onSelectAction = (action: string, item: StorageListObject) => {
     height: 240px
     min-height: 240px
     background-color: #f5f5f5
+    display: flex
+    align-items: center
+    justify-content: center
 
-    img
-      width: 100%
-      height: 100%
-      object-fit: cover
-      display: block
-      transition: transform 0.25s ease-in-out
+  :deep(.n-image)
+    width: 100%
+    height: 240px
+    display: block
+    transition: transform 0.25s ease-in-out
 
-      &:hover
-        transform: scale(1.05)
+    &:hover
+      transform: scale(1.05)
 
 .gallery-grid
   display: grid
