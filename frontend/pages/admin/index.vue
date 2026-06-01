@@ -1,74 +1,67 @@
 <template lang="pug">
-.admin-home-page
-  NH1 Admin Dashboard
-  NP(depth='3') Admin functions and management
+NGrid(x-gap='16', y-gap='16', cols='1 m:2 l:3', responsive='screen')
+  NGi: NCard(:title='t("admin.dashboard")', :segmented='{ content: "soft" }')
+    NP {{ t('admin.dashboardDesc') }}
 
-  .grid.grid-cols-1.md-grid-cols-2.gap-4.mt-6
-    RouterLink(
-      v-for='entry in entries',
-      :key='entry.title',
-      :to='entry.link',
-      style='text-decoration: none; color: inherit'
-    )
-      NCard(hoverable)
-        .flex.items-center.justify-between
-          div
-            h3.text-lg.font-semibold.mb-1 {{ entry.title }}
-            NText(depth='3') {{ entry.description }}
-          NIcon(size='32'): component(:is='entry.icon || IconChevronRight')
+  NGi(v-for='item in cards', :key='item.to')
+    NCard(:title='t(item.title)', hoverable, :segmented='{ content: "soft" }', @click='$router.push(item.to)', cursor-pointer)
+      template(#header-extra): NIcon(:component='item.icon', size='20', :depth='3')
+      NP {{ t(item.desc) }}
 
-  NDivider
-
-  NCard.mt-6(title='About')
-    NImage(src='/logos/flaredrive-logo-h.png', alt='FlareDrive Logo', width='200')
-    NP Powered by FlareDrive.
-    .mt-3.flex.gap-2.flex-wrap
-      NText MIT License
-      NText(depth='3') ·
-      NA(href='https://github.com/project-epb/flaredrive-rev', target='_blank', rel='noopener noreferrer') GitHub
-      NText(depth='3') ·
-      NText
-        | Made with 🐟 by
-        |
+  NGi(span='1 m:2 l:3')
+    NCard(:title='t("admin.about")', :segmented='{ content: "soft" }')
+      .flex.gap-3.items-center
+        NP {{ t('admin.poweredByFlaredrive') }} ·
+        NA(href='https://github.com/project-epb/flaredrive-rev/blob/main/LICENSE', target='_blank', rel='noopener noreferrer') {{ t('admin.mitLicense') }} ·
+        NA(href='https://creativecommons.org/licenses/by-sa/4.0/', target='_blank', rel='noopener noreferrer') {{ t('admin.ccBySa') }}
+      .flex.gap-2.items-center.mt-2
+        NText(depth='3') {{ t('admin.createdBy') }}:
         NA(href='https://github.com/dragon-fish', target='_blank', rel='noopener noreferrer') Dragon Fish
-    NP
-      | FlareDrive logo &amp; mascot
-      |
-      | ·
-      |
-      | Created by
-      |
-      NA(href='https://github.com/dragon-fish', target='_blank', rel='noopener noreferrer') Dragon Fish
-      |
-      | ·
-      |
-      | CC BY-SA 4.0 License
+        NA(href='https://github.com/xjxlx', target='_blank', rel='noopener noreferrer') xjxlx
+      NDivider
+      NP(depth='3', text-2)
+        | {{ t('admin.logoCredit') }} ·
+        |
+        NA(href='https://github.com/ju5td0m7eastside', target='_blank', rel='noopener noreferrer') ju5td0m7eastside
 </template>
 
 <script setup lang="ts">
-import { IconChevronRight, IconDatabase, IconUsers, IconSettings } from '@tabler/icons-vue'
-import { NButton, NCard, NText } from 'naive-ui'
+import { IconBucket, IconSettings, IconUsers } from '@tabler/icons-vue'
 
-const router = useRouter()
+definePageMeta({
+  title: 'nav.adminDashboard',
+  layout: 'admin',
+  requiresAuth: true,
+})
 
-const entries = [
+const auth = useAuthStore()
+if ((auth.user?.authorizationLevel || 0) < 3) {
+  throw createError({
+    statusCode: 403,
+    statusMessage: t('common.forbidden'),
+  })
+}
+
+const cards = [
   {
-    title: 'Site Settings',
-    description: 'Instance name and registration toggle',
+    title: 'nav.siteSettings',
+    desc: 'admin.settings.title',
     icon: IconSettings,
-    link: '/admin/settings',
+    to: '/admin/settings',
   },
   {
-    title: 'User Management',
-    description: 'Manage user accounts and permissions',
+    title: 'nav.userManagement',
+    desc: 'admin.users.desc',
     icon: IconUsers,
-    link: '/admin/users',
+    to: '/admin/users',
   },
   {
-    title: 'Bucket Management',
-    description: 'View and manage all bucket configurations',
-    icon: IconDatabase,
-    link: '/admin/buckets',
+    title: 'nav.bucketManagement',
+    desc: 'admin.buckets.desc',
+    icon: IconBucket,
+    to: '/admin/buckets',
   },
 ]
 </script>
+
+<style scoped lang="sass"></style>

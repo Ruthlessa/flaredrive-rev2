@@ -1,7 +1,7 @@
 <template lang="pug">
 .browser-text-render(ref='containerRef')
-  MarkdownRender(v-if='previewType === "markdown"', :value='content || "Loading..."', tag='div', prose, max-w='unset')
-  .plain-text(v-else, whitespace='pre-wrap', overflow-auto, prose, max-w='unset') {{ content || 'Loading...' }}
+  MarkdownRender(v-if='previewType === "markdown"', :value='content || t("common.loading")', tag='div', prose, max-w='unset')
+  .plain-text(v-else, whitespace='pre-wrap', overflow-auto, prose, max-w='unset') {{ content || t('common.loading') }}
 </template>
 
 <script setup lang="ts">

@@ -2,8 +2,8 @@
 NConfigProvider(
   :theme-overrides='themeOverrides',
   :theme='theme.naiveUiTheme',
-  :locale='zhCN',
-  :date-locale='dateZhCN',
+  :locale='naiveLocale',
+  :date-locale='naiveDateLocale',
   inline-theme-disabled
 )
   NMessageProvider(:max='5', :duration='5000', placement='top')
@@ -21,11 +21,18 @@ import {
   NMessageProvider,
   NModalProvider,
   NNotificationProvider,
+  dateEnUS,
   dateZhCN,
+  enUS,
   zhCN,
 } from 'naive-ui'
+import { computed } from 'vue'
 
 const theme = useThemeStore()
+const { locale } = useI18n()
+
+const naiveLocale = computed(() => (locale.value === 'zh' ? zhCN : enUS))
+const naiveDateLocale = computed(() => (locale.value === 'zh' ? dateZhCN : dateEnUS))
 
 // Cloudflare Orange Theme
 const themeOverrides: GlobalThemeOverrides = {

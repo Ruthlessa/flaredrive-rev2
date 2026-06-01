@@ -1,3 +1,5 @@
+import type { Locale } from '@/locales'
+
 export type BrowserLayout = 'list' | 'gallery' | 'book'
 
 export type GallerySortBy = 'key' | 'size' | 'uploaded'
@@ -13,6 +15,10 @@ export function isGallerySortBy(value: unknown): value is GallerySortBy {
 
 export function isSortOrder(value: unknown): value is SortOrder {
   return value === 'ascend' || value === 'descend'
+}
+
+export function isLocale(value: unknown): value is Locale {
+  return value === 'en' || value === 'zh'
 }
 
 export type UserPrefsV1 = {
@@ -38,6 +44,11 @@ export type UserPrefsV1 = {
    * Show the top sticky rail in the bucket browser.
    */
   showTopStickyRail: boolean
+
+  /**
+   * UI locale
+   */
+  locale: Locale
 }
 
 const STORAGE_KEY = 'flaredrive:prefs'
@@ -50,6 +61,7 @@ function defaultPrefs(): UserPrefsV1 {
     gallerySortBy: 'key',
     gallerySortOrder: 'ascend',
     showTopStickyRail: true,
+    locale: 'en',
   }
 }
 
@@ -94,6 +106,11 @@ export const usePrefsStore = defineStore('prefs', () => {
       migrated.gallerySortOrder = legacyGallerySortOrder
     }
 
+    const legacyLocale = readLegacyValue<unknown>('flaredrive:locale')
+    if (isLocale(legacyLocale)) {
+      migrated.locale = legacyLocale
+    }
+
     prefs.value = {
       ...defaultPrefs(),
       ...prefs.value,
@@ -133,6 +150,13 @@ export const usePrefsStore = defineStore('prefs', () => {
     },
   })
 
+  const locale = computed<Locale>({
+    get: () => prefs.value.locale,
+    set: (value) => {
+      prefs.value.locale = value
+    },
+  })
+
   function reset() {
     const next = defaultPrefs()
     next.didMigrateLegacy = true
@@ -145,6 +169,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     gallerySortBy,
     gallerySortOrder,
     showTopStickyRail,
+    locale,
     migrateLegacyIfNeeded,
     reset,
   }

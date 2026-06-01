@@ -1,91 +1,93 @@
 <template lang="pug">
-NForm
-  NFormItem(label='Files')
-    NUpload(multiple, directory-dnd, :custom-request, @finish='onFinish', ref='uploaderRef')
-      NUploadDragger
-        div: NIcon(size='80'): IconUpload
-        NP Click or drag files to this area to upload
-  NFormItem(label='Prefix', v-if='!prefixReadonly')
-    NInput(:placeholder='defaultPrefix', :default-value='defaultPrefix', v-model:value='formData.prefix', clearable)
-  //- div
-  //-   NButton(type='primary', block, @click='handleStart') Upload
-  UploadProgress
+NDrawer(v-model:show='show', placement='right', :width='windowWidth < 768 ? "100%" : 480')
+  NDrawerContent(closable)
+    template(#header) {{ t('common.upload') }}
+    NSpin(:show='uploading')
+      NUpload(
+        v-model:file-list='fileList',
+        multiple,
+        :show-file-list='true',
+        :default-upload='false',
+        :max='Math.max(1, concurrency)',
+        @change='handleChange',
+        @before-upload='handleBeforeUpload',
+        @remove='handleRemove'
+      )
+        NUploadDragger
+          div
+            NText(style='font-size: 16px') {{ t('upload.clickOrDrag') }}
+            NText(depth='3', block, text-2, mt-1) {{ t('common.upload') }}
+        NInput.mt-3(
+          v-model:value='prefix',
+          :placeholder='t("upload.prefix")',
+          :value='currentPrefix',
+          readonly
+        )
+
+      .flex.gap-2.mt-4
+        NButton(type='primary', :loading='uploading', :disabled='!canStart', @click='startUpload') {{ t('common.upload') }}
+        NButton(@click='$emit("update:show", false)') {{ t('common.cancel') }}
 </template>
 
 <script setup lang="ts">
-import type { StorageListObject } from '@/models/BucketClient'
-import { IconUpload } from '@tabler/icons-vue'
-import { NFormItem, useMessage, type UploadCustomRequestOptions, type UploadFileInfo } from 'naive-ui'
+import { useMessage, type UploadFileInfo } from 'naive-ui'
 
-const nmessage = useMessage()
-const props = withDefaults(
-  defineProps<{
-    defaultPrefix?: string
-    prefixReadonly?: boolean
-  }>(),
-  {
-    defaultPrefix: '',
-    prefixReadonly: false,
-  }
-)
-const emit = defineEmits<{
-  uploaded: [item: StorageListObject]
+const props = defineProps<{
+  prefix?: string
+  bucket?: string
+  bucketInfo?: any
 }>()
-const formData = reactive({
-  prefix: props.defaultPrefix,
-})
-const bucket = useBucketStore()
 
-const customRequest = async (payload: UploadCustomRequestOptions) => {
-  console.info('upload', payload)
-  payload.file.status = 'uploading'
-  const timer = setInterval(() => {
-    payload.file.percentage = Math.min(90, (payload.file.percentage || 0) + Math.random() * 10)
-    if (payload.file.percentage >= 90) {
-      clearInterval(timer)
+const show = defineModel('show', { type: Boolean, default: false })
+const emit = defineEmits<{
+  uploaded: []
+}>()
+
+const message = useMessage()
+const { width: windowWidth } = useWindowSize()
+const fileList = ref<UploadFileInfo[]>([])
+const uploading = ref(false)
+const concurrency = ref(1)
+const currentPrefix = computed(() => props.prefix || '')
+
+const canStart = computed(() => fileList.value.length > 0 && !uploading.value)
+
+const handleChange = ({ fileList: newList }: { fileList: UploadFileInfo[] }) => {
+  fileList.value = newList
+}
+const handleBeforeUpload = ({ file }: { file: UploadFileInfo }) => {
+  return true
+}
+const handleRemove = ({ file }: { file: UploadFileInfo }) => {
+  fileList.value = fileList.value.filter((f) => f.id !== file.id)
+}
+
+const startUpload = async () => {
+  if (fileList.value.length === 0) return
+  uploading.value = true
+  let successCount = 0
+  for (const file of fileList.value) {
+    try {
+      const formData = new FormData()
+      const blob: any = (file.file as any) || (file as any)
+      if (!blob) continue
+      formData.append('file', blob, file.name)
+      await $fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        query: { prefix: currentPrefix.value, bucket: props.bucket },
+      })
+      successCount++
+    } catch (e: any) {
+      message.error(t('upload.uploadFailed') + ': ' + file.name)
     }
-  }, 100)
-  bucket
-    .addToUploadQueue(
-      `${formData.prefix.replace(/\/$/, '')}/${(payload.file.file as any)?.webkitRelativePath || payload.file.name}`,
-      payload.file.file!,
-      { ignoreRandom: !!(payload.file.file as any)?.webkitRelativePath }
-    )
-    .promise.then((data) => {
-      if (!data) {
-        throw new Error('No data returned from upload')
-      }
-      payload.file.status = 'finished'
-      payload.file.url = bucket.getCDNUrl(data)
-      if (payload.file.file?.type.startsWith('image/')) {
-        payload.file.thumbnailUrl = bucket.getCDNUrl(data)
-      }
-      payload.file.percentage = 100
-      payload.onFinish()
-      emit('uploaded', data)
-      if (bucket.currentBatchTotal > 1) {
-        if (bucket.currentBatchFinished === bucket.currentBatchTotal) {
-          nmessage.success(`${bucket.currentBatchTotal} files uploaded successfully`)
-        }
-      } else {
-        nmessage.success(`${payload.file.name} uploaded successfully`)
-      }
-    })
-    .catch((err) => {
-      nmessage.error('Upload failed', err)
-      payload.file.status = 'error'
-      payload.file.percentage = 0
-      payload.onError()
-    })
-    .finally(() => {
-      clearInterval(timer)
-    })
+  }
+  uploading.value = false
+  message.success(t('browser.uploadFinished', { count: successCount }))
+  fileList.value = []
+  emit('uploaded')
+  show.value = false
 }
-const uploaderRef = useTemplateRef('uploaderRef')
-function handleStart() {
-  uploaderRef.value!.submit()
-}
-function onFinish(options: { file: UploadFileInfo; event?: ProgressEvent }) {}
 </script>
 
 <style scoped lang="sass"></style>

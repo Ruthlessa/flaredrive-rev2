@@ -1,147 +1,143 @@
 <template lang="pug">
-.admin-buckets-page
-  .flex.items-center.justify-between.mb-6
-    div
-      h1.text-2xl.font-bold.mb-1 Buckets Management
-      NText(depth='3') Manage all configured storage buckets
-    .flex.gap-2
-      NButton(secondary, @click='loadBuckets', :loading='isLoading')
-        template(#icon): NIcon: IconRefresh
-      NButton(type='primary', @click='showBucketModal()') New Bucket
-
-  NDataTable(
-    :columns='columns',
-    :data='rows',
-    :loading='isLoading',
-    :row-key='(row) => row.id',
-    scroll-x='100%',
-    :row-props='rowProps'
-  )
-
-  NModal(
-    v-model:show='showModal',
-    preset='card',
-    :title='selectedBucket ? `Edit Bucket: ${selectedBucket.name}` : "Create New Bucket"',
-    style='width: 600px; max-width: 95vw',
-    :bordered='false'
-  )
-    BucketForm(:bucket='selectedBucket || undefined', @cancel='showModal = false', @success='handleFormSuccess')
+.flex.flex-col.gap-4
+  NCard(:title='t("admin.buckets.title")', :segmented='{ content: "soft" }', hoverable)
+    template(#header-extra)
+      NButton(type='primary', @click='showCreateModal = true')
+        template(#icon): NIcon: IconPlus
+        | {{ t('admin.buckets.createNew') }}
+    NP {{ t('admin.buckets.desc') }}
+    NDataTable(
+      :columns='columns',
+      :data='list',
+      :loading='pending',
+      :row-key='(row) => row.id',
+      :bordered='false',
+      :single-line='false',
+      flex-height,
+      style='margin-top: 16px'
+    )
+  NModal(v-model:show='showCreateModal', preset='card', :title='t("admin.buckets.createNew")', style='max-width: 600px', @close='resetCreateForm')
+    BucketForm(@close='showCreateModal = false', @save='handleCreate')
 </template>
 
 <script setup lang="ts">
-import { NButton, NButtonGroup, NPopconfirm, NTag, NSpace, useMessage, type DataTableColumns } from 'naive-ui'
-import { IconEdit, IconRefresh, IconTrash } from '@tabler/icons-vue'
-import fexios from 'fexios'
-import type { BucketInfo } from '@/models/BucketClient'
+import { NButton, NIcon, useMessage } from 'naive-ui'
+import type { DataTableColumns, DataTableRowData } from 'naive-ui'
+import { IconPlus, IconTrash } from '@tabler/icons-vue'
 
-const message = useMessage()
-const rows = ref<BucketInfo[]>([])
-const isLoading = ref(false)
-
-const loadBuckets = async () => {
-  isLoading.value = true
-  try {
-    const { data } = await fexios.get<BucketInfo[]>('/api/admin/buckets')
-    rows.value = data || []
-  } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Failed to load buckets')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(() => {
-  loadBuckets()
+definePageMeta({
+  title: 'admin.buckets.title',
+  layout: 'admin',
+  requiresAuth: true,
 })
 
-const handleDelete = async (row: BucketInfo) => {
-  try {
-    await fexios.delete(`/api/admin/buckets/${row.id}`)
-    message.success('Deleted successfully')
-    await loadBuckets()
-  } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Failed to delete')
-  }
+const auth = useAuthStore()
+if ((auth.user?.authorizationLevel || 0) < 3) {
+  throw createError({
+    statusCode: 403,
+    statusMessage: t('common.forbidden'),
+  })
 }
 
-const columns: DataTableColumns<BucketInfo & { ownerEmail?: string; ownerUserId?: string }> = [
-  { title: 'ID', key: 'id', width: 140, ellipsis: true },
-  { title: '名称', key: 'name', width: 180, ellipsis: true },
+const message = useMessage()
+const BucketForm = defineAsyncComponent(() => import('@/components/BucketForm.vue'))
+
+const { data: list, pending, refresh, error } = await useAsyncData('admin-buckets-list', () =>
+  $fetch<any[]>('/api/admin/buckets', { method: 'GET' }).then((res) => res || [])
+)
+
+if (error.value) {
+  message.error(t('admin.buckets.loadFailed'))
+}
+
+const showCreateModal = ref(false)
+const resetCreateForm = () => {
+  // BucketForm handles its own reset on close
+}
+const handleCreate = async () => {
+  showCreateModal.value = false
+  message.success(t('bucket.bucketCreated'))
+  await refresh()
+}
+
+const columns = computed<DataTableColumns<DataTableRowData>>(() => [
   {
-    title: 'Owner',
-    key: 'ownerEmail',
-    width: 200,
-    render: (row) => row.ownerEmail || `#${row.ownerUserId}`,
+    title: t('admin.buckets.id'),
+    key: 'id',
+    width: 50,
   },
-  { title: 'Bucket', key: 'bucketName', width: 160 },
-  { title: 'Region', key: 'region', width: 120 },
-  { title: 'Endpoint', key: 'endpointUrl', width: 240, ellipsis: true },
   {
-    title: 'Upload',
-    key: 'uploadMethod',
-    width: 120,
-    render: (row) => {
-      const method = row.uploadMethod === 'proxy' ? 'Proxy' : 'Presigned'
-      const type = row.uploadMethod === 'proxy' ? 'warning' : 'info'
-      return h(NTag, { type, size: 'small' }, () => method)
-    },
+    title: t('admin.buckets.name'),
+    key: 'name',
   },
   {
-    title: 'Path Style',
-    key: 'forcePathStyle',
-    width: 110,
-    render: (row) => (row.forcePathStyle ? h(NTag, { type: 'info', size: 'small' }, () => 'Yes') : 'No'),
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    width: 120,
-    cellProps() {
-      return {
-        onClick(e: Event) {
-          e.stopPropagation()
-        },
-      }
-    },
+    title: t('admin.buckets.owner'),
+    key: 'owner',
     render(row) {
-      return h(NButtonGroup, {}, () => [
-        h(NButton, { size: 'small', onClick: () => showBucketModal(row), renderIcon: () => h(IconEdit) }),
-        h(
-          NPopconfirm,
-          {
-            onPositiveClick: () => handleDelete(row),
-            'positive-text': 'Delete',
-            'negative-text': 'Cancel',
-          },
-          {
-            trigger: () => h(NButton, { size: 'small', type: 'error', secondary: true }, { icon: () => h(IconTrash) }),
-            default: () => `Delete bucket "${row.name}"?`,
-          }
-        ),
-      ])
+      return row.user?.email || '-'
     },
   },
-]
-
-const rowProps = (row: BucketInfo) => {
-  return {
-    onClick() {
-      showBucketModal(row)
+  {
+    title: t('admin.buckets.bucket'),
+    key: 'bucketName',
+  },
+  {
+    title: t('admin.buckets.region'),
+    key: 'region',
+  },
+  {
+    title: t('admin.buckets.endpoint'),
+    key: 'endpoint',
+    ellipsis: true,
+  },
+  {
+    title: t('admin.buckets.upload'),
+    key: 'uploadMethod',
+    render(row) {
+      if (row.uploadMethod === 'presigned') return t('bucket.form.uploadMethodPresigned')
+      if (row.uploadMethod === 'proxy') return t('bucket.form.uploadMethodProxy')
+      return '-'
     },
-    style: { cursor: 'pointer' },
+  },
+  {
+    title: t('admin.buckets.pathStyle'),
+    key: 'forcePathStyle',
+    render(row) {
+      return row.forcePathStyle ? '✓' : '—'
+    },
+  },
+  {
+    title: t('common.actions'),
+    key: 'actions',
+    width: 80,
+    fixed: 'right',
+    render(row) {
+      return h(
+        NButton,
+        {
+          size: 'small',
+          type: 'error',
+          secondary: true,
+          onClick: () => handleDelete(row),
+        },
+        {
+          default: () => t('common.delete'),
+          icon: () => h(NIcon, null, { default: () => h(IconTrash) }),
+        }
+      )
+    },
+  },
+])
+
+const handleDelete = async (row: any) => {
+  try {
+    await $fetch(`/api/admin/buckets/${row.id}`, { method: 'DELETE' })
+    message.success(t('admin.buckets.deleted'))
+    await refresh()
+  } catch (e: any) {
+    message.error(t('admin.buckets.deleteFailed'))
   }
-}
-
-const selectedBucket = ref<BucketInfo | undefined>()
-const showModal = ref(false)
-
-const showBucketModal = (bucket?: BucketInfo) => {
-  selectedBucket.value = bucket
-  showModal.value = true
-}
-const handleFormSuccess = async () => {
-  showModal.value = false
-  selectedBucket.value = undefined
-  await loadBuckets()
 }
 </script>
+
+<style scoped lang="sass"></style>

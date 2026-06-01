@@ -4,7 +4,7 @@ NBreadcrumb.breadcrumb-nav
     NText(quaternary, text)
       //- IconHome
       NIcon(mr-1, :component='IconHome')
-      | Home
+      | {{ t('nav.home') }}
   NBreadcrumbItem(v-for='(item, index) in breadParts', :key='item.key', @click='onBreadClick(item, index)') {{ item.label }}
 </template>
 

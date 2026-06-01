@@ -16,7 +16,7 @@ NLayoutHeader.global-header(bordered)
         quaternary,
         type='primary',
         size='small'
-      ) 
+      )
         template(#icon)
           NIcon: IconBucket
         | {{ bucket.currentBucketInfo.name || bucket.currentBucketName }}
@@ -29,7 +29,7 @@ NLayoutHeader.global-header(bordered)
       )
         template(#icon)
           NIcon: IconDatabase
-        | My Buckets
+        | {{ t('nav.myBuckets') }}
 
     //- Right Side
     .flex(items-center, gap-3)
@@ -41,7 +41,7 @@ NLayoutHeader.global-header(bordered)
         :type='$route.path.startsWith("/admin") ? "primary" : "default"'
       )
         template(#icon): IconDashboard
-        template(v-if='!isMobile') Admin
+        template(v-if='!isMobile') {{ t('nav.admin') }}
       NDropdown(:options='themeOptions', @select='theme.setTheme', :value='theme.rawTheme')
         NButton(quaternary, circle, @click='switchThemes'): component(:is='currentThemeOption.icon')
 
@@ -59,17 +59,17 @@ const site = useSiteStore()
 const themeOptions = shallowRef<DropdownOption[]>([
   {
     type: '',
-    label: 'Auto',
+    label: t('themes.auto'),
     key: 'auto',
     icon: () => '🌈',
   },
   {
-    label: 'Light',
+    label: t('themes.light'),
     key: 'light',
     icon: () => '🌞',
   },
   {
-    label: 'Dark',
+    label: t('themes.dark'),
     key: 'dark',
     icon: () => '🌚',
   },

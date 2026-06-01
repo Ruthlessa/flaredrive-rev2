@@ -1,148 +1,83 @@
 <template lang="pug">
-.preferences-page
-  NH1 Preferences
-  NP(depth='3') Customize your local experience. These settings are stored in your browser.
+.flex.flex-col.gap-4
+  h1.text-2xl.font-bold {{ t('prefs.title') }}
+  NP(depth='3') {{ t('prefs.desc') }}
 
-  .grid.grid-cols-1.gap-4.mt-4
-    NCard(title='Browser')
-      NForm(label-placement='left', label-width='180')
-        NFormItem(label='Default layout')
-          NSelect(
-            style='min-width: 220px',
-            :value='browserLayout',
-            :options='layoutSelectOptions',
-            @update:value='onUpdateLayout'
-          )
-          template(#feedback)
-            span.text-xs.opacity-70
-              | Used for bucket object browsing.
+  //- Language
+  NCard(:title='t("prefs.language")', :segmented='{ content: "soft" }')
+    .flex.items-center.gap-4
+      NSelect(
+        v-model:value='localePref',
+        :options='localeOptions',
+        style='width: 240px'
+      )
+    NP(depth='3', mt-2) {{ t('prefs.languageFeedback') }}
 
-        NFormItem(label='Top sticky rail')
-          NSwitch(:value='showTopStickyRail', @update:value='onUpdateTopRail')
-          template(#feedback)
-            span.text-xs.opacity-70
-              | Show the top sticky action rail in bucket browser.
+  //- Theme
+  NCard(:title='t("prefs.theme")', :segmented='{ content: "soft" }')
+    .flex.items-center.gap-4
+      NRadioGroup(v-model:value='themePref')
+        NRadio(value='auto') {{ t('themes.auto') }}
+        NRadio(value='light') {{ t('themes.light') }}
+        NRadio(value='dark') {{ t('themes.dark') }}
+    NP(depth='3', mt-2) {{ t('prefs.colorModeFeedback') }}
 
-        NFormItem(label='Gallery sort')
-          .flex.items-center.gap-2.flex-wrap
-            NSelect(
-              style='min-width: 180px',
-              :value='gallerySortBy',
-              :options='gallerySortByOptions',
-              @update:value='onUpdateGallerySortBy'
-            )
-            NSelect(
-              style='min-width: 180px',
-              :value='gallerySortOrder',
-              :options='sortOrderOptions',
-              @update:value='onUpdateGallerySortOrder'
-            )
-          template(#feedback)
-            span.text-xs.opacity-70
-              | Default sorting for the gallery view.
+  //- Browser
+  NCard(:title='t("prefs.browser")', :segmented='{ content: "soft" }')
+    .flex.flex-col.gap-4
+      NFormItem(:show-feedback='true', :feedback='t("prefs.defaultLayoutFeedback")')
+        template(#label) {{ t('prefs.defaultLayout') }}
+        NRadioGroup(v-model:value='browserLayout')
+          NRadio(value='list') {{ t('browser.layout.list') }}
+          NRadio(value='gallery') {{ t('browser.layout.gallery') }}
+          NRadio(value='book') {{ t('browser.layout.book') }}
+      NFormItem(:show-feedback='true', :feedback='t("prefs.topStickyRailFeedback")')
+        template(#label) {{ t('prefs.topStickyRail') }}
+        NSwitch(v-model:value='showTopStickyRail')
 
-    NCard(title='Theme')
-      NForm(label-placement='left', label-width='180')
-        NFormItem(label='Color mode')
-          NSelect(
-            style='min-width: 220px',
-            :value='theme.rawTheme',
-            :options='themeOptions',
-            @update:value='onUpdateTheme'
-          )
-          template(#feedback)
-            span.text-xs.opacity-70
-              | Light, dark or follow system.
-
-    NCard(title='Reset')
-      NForm(label-placement='left', label-width='180')
-        NFormItem(label='Reset preferences')
-          NButton(type='warning', secondary, @click='onReset') Reset
-          template(#feedback)
-            span.text-xs.opacity-70
-              | Restore defaults for all local preferences.
+  //- Reset
+  NCard(:title='t("prefs.reset")', :segmented='{ content: "soft" }')
+    NP(depth='3', mb-2) {{ t('prefs.resetPrefsFeedback') }}
+    NPopconfirm(
+      @positive-click='handleReset',
+      :negative-text='t("common.cancel")',
+      :positive-text='t("prefs.reset")'
+    )
+      template(#trigger)
+        NButton(type='warning', secondary) {{ t('prefs.resetPrefs') }}
+      .max-w-300px {{ t('prefs.resetContent') }}
 </template>
 
 <script setup lang="ts">
-import { useDialog, useMessage } from 'naive-ui'
-import type { SelectMixedOption } from 'naive-ui/es/select/src/interface'
-import { isBrowserLayout, isGallerySortBy, isSortOrder } from '@/stores/prefs'
+import { localeOptions } from '@/locales'
 
-definePage({
-  name: 'preferences',
-  meta: {
-    // keep default auth requirement
-  },
+definePageMeta({
+  title: 'prefs.title',
+  layout: 'default',
+  requiresAuth: true,
 })
 
 const prefs = usePrefsStore()
+const { locale, browserLayout, showTopStickyRail, reset } = storeToRefs(prefs)
 const theme = useThemeStore()
 
-const { browserLayout, showTopStickyRail, gallerySortBy, gallerySortOrder } = storeToRefs(prefs)
+const localePref = computed<typeof locale.value>({
+  get: () => locale.value,
+  set: (v) => {
+    locale.value = v
+  },
+})
 
-const dialog = useDialog()
+const themePref = computed({
+  get: () => theme.rawTheme,
+  set: (v: 'auto' | 'light' | 'dark') => theme.setTheme(v),
+})
+
+const handleReset = () => {
+  reset.value()
+  message.success(t('prefs.resetSuccess'))
+}
 const message = useMessage()
-
-const layoutSelectOptions: SelectMixedOption[] = [
-  { label: 'List', value: 'list' },
-  { label: 'Gallery', value: 'gallery' },
-  { label: 'Book', value: 'book' },
-]
-
-const gallerySortByOptions: SelectMixedOption[] = [
-  { label: 'Name', value: 'key' },
-  { label: 'Size', value: 'size' },
-  { label: 'Date', value: 'uploaded' },
-]
-
-const sortOrderOptions: SelectMixedOption[] = [
-  { label: 'Ascending', value: 'ascend' },
-  { label: 'Descending', value: 'descend' },
-]
-
-const themeOptions: SelectMixedOption[] = [
-  { label: 'Auto', value: 'auto' },
-  { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
-]
-
-function onUpdateLayout(value: string) {
-  if (isBrowserLayout(value)) browserLayout.value = value
-}
-
-function onUpdateTopRail(value: boolean) {
-  showTopStickyRail.value = value
-}
-
-function onUpdateGallerySortBy(value: string) {
-  if (isGallerySortBy(value)) gallerySortBy.value = value
-}
-
-function onUpdateGallerySortOrder(value: string) {
-  if (isSortOrder(value)) gallerySortOrder.value = value
-}
-
-function onUpdateTheme(value: string) {
-  if (value === 'auto' || value === 'light' || value === 'dark') {
-    theme.setTheme(value)
-  }
-}
-
-function onReset() {
-  dialog.warning({
-    title: 'Reset Preferences',
-    content: 'Reset all local preferences to defaults?',
-    positiveText: 'Reset',
-    negativeText: 'Cancel',
-    onPositiveClick: () => {
-      prefs.reset()
-      message.success('Reset')
-    },
-  })
-}
 </script>
 
-<style scoped lang="sass">
-.preferences-page
-  padding: 1rem 1.5rem
-</style>
+<style scoped lang="sass"></style>

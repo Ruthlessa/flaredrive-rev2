@@ -4,12 +4,12 @@ NLayoutFooter.global-footer(bordered)
     NP Copyright © {{ date.getFullYear() }} {{ site.siteName || 'FlareDrive' }}
     .flex.items-center.gap-2.flex-wrap
       NText
-        | Powered by
+        | {{ t('app.poweredBy') }}
         |
         NA(href='https://github.com/project-epb/flaredrive-rev', target='_blank', rel='noopener noreferrer') FlareDrive
       NText(depth='3') ·
       NText
-        | Made with 🐟 by
+        | {{ t('app.madeWith') }}
         |
         NA(href='https://github.com/dragon-fish', target='_blank', rel='noopener noreferrer') Dragon Fish
 </template>

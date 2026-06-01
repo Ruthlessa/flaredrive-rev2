@@ -18,6 +18,21 @@ auth.fetchMe().catch(() => void 0)
 const site = useSiteStore(pinia)
 site.fetchPublicSettings().catch(() => void 0)
 
+// i18n bootstrap: sync prefs.locale into the i18n module
+const prefs = usePrefsStore(pinia)
+const i18n = useI18n()
+if (i18n.locale.value !== prefs.locale.value) {
+  setLocale(prefs.locale.value)
+}
+watch(
+  () => prefs.locale.value,
+  (next) => {
+    if (i18n.locale.value !== next) {
+      setLocale(next)
+    }
+  }
+)
+
 watchEffect(() => {
   if ('document' in globalThis) {
     const name = site.siteName || 'FlareDrive'

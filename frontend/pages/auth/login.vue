@@ -1,84 +1,101 @@
 <template lang="pug">
-#auth-login
-  NCard(title='Login', size='large')
-    NForm(:model='form', :rules='rules', ref='formRef', label-placement='top')
-      NFormItem(label='Email', path='email')
-        NInput(v-model:value='form.email', placeholder='you@example.com', autofocus)
-      NFormItem(label='Password', path='password')
-        NInput(
-          v-model:value='form.password',
-          type='password',
-          show-password-on='click',
-          placeholder='At least 8 characters'
-        )
-      .flex(gap-3, items-center)
-        NButton(type='primary', :loading='submitting', @click='onSubmit') Login
-        NButton(v-if='allowRegister', quaternary, @click='goRegister') Register
+.flex.flex-col.items-center.justify-center(min-h='80vh', px-4, py-8)
+  NCard(
+    :title='t("auth.login")',
+    style='width: 100%; max-width: 400px',
+    hoverable,
+    @keyup.enter='onSubmit'
+  )
+    NFormItem(
+      :label='t("auth.email")',
+      :show-feedback='!emailError || !!formData.email',
+      :feedback='emailError || t("auth.emailPlaceholder")',
+      :validation-status='emailError ? "error" : undefined'
+    )
+      NInput(v-model:value='formData.email', :placeholder='t("auth.emailPlaceholder")', autofocus)
+    NFormItem(
+      :label='t("auth.password")',
+      :show-feedback='!passwordError || !!formData.password',
+      :feedback='passwordError || t("auth.passwordPlaceholder")',
+      :validation-status='passwordError ? "error" : undefined'
+    )
+      NInput(v-model:value='formData.password', type='password', show-password-on='click', :placeholder='t("auth.passwordPlaceholder")')
+
+    NButton(type='primary', block, @click='onSubmit', :loading='isSubmitting') {{ t('auth.login') }}
+    .text-center.mt-4
+      NText(depth='3') {{ t('auth.iHaveAccount') }} ·
+      NA(href='/auth/register', text): strong {{ t('auth.register') }}
 </template>
 
 <script setup lang="ts">
-import { NButton, NCard, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
-import type { FormInst, FormRules } from 'naive-ui'
+import { useMessage } from 'naive-ui'
+import type { LoginData } from '@/models/Auth'
 
-definePage({
-  name: 'auth-login',
+definePageMeta({
+  title: 'auth.login',
+  layout: 'default',
 })
 
 const auth = useAuthStore()
-const site = useSiteStore()
-const route = useRoute()
-const router = useRouter()
 const message = useMessage()
-const allowRegister = computed(() => site.allowRegister)
+const router = useRouter()
+const route = useRoute()
 
-const redirectTo = computed(() => {
-  const q = route.query.redirect
-  return typeof q === 'string' && q ? q : '/'
-})
-
-const form = reactive({
+const formData = ref<LoginData>({
   email: '',
   password: '',
 })
 
-const rules: FormRules = {
-  email: [
-    { required: true, message: 'Please enter your email', trigger: ['blur', 'input'] },
-    { type: 'email', message: 'Invalid email format', trigger: ['blur', 'input'] },
-  ],
-  password: [{ required: true, message: 'Please enter your password', trigger: ['blur', 'input'] }],
-}
+const isSubmitting = ref(false)
 
-const submitting = ref(false)
-const formRef = ref<FormInst | null>(null)
+const emailError = computed(() => {
+  if (!formData.value.email) return ''
+  if (!/^[\w-.]+@[\w-]+(\.[\w-]+)+$/.test(formData.value.email)) {
+    return t('auth.invalidEmail')
+  }
+  return ''
+})
+const passwordError = computed(() => {
+  if (!formData.value.password) return ''
+  if (formData.value.password.length < 8) {
+    return t('auth.passwordMinLength')
+  }
+  return ''
+})
 
 const onSubmit = async () => {
-  if (submitting.value) return
-  const ok = await formRef.value
-    ?.validate()
-    .then(() => true)
-    .catch(() => false)
-  if (!ok) return
-
-  submitting.value = true
-  try {
-    await auth.login({ email: form.email, password: form.password })
-    message.success('Login successful')
-    await router.replace(redirectTo.value)
-  } catch (e: any) {
-    message.error(e?.message || 'Login failed')
-  } finally {
-    submitting.value = false
+  if (!formData.value.email) {
+    message.error(t('auth.pleaseEnterEmail'))
+    return
   }
-}
-
-const goRegister = () => {
-  router.push({ name: 'auth-register', query: { redirect: redirectTo.value } })
+  if (!formData.value.password) {
+    message.error(t('auth.pleaseEnterPassword'))
+    return
+  }
+  if (emailError.value) {
+    message.error(emailError.value)
+    return
+  }
+  if (passwordError.value) {
+    message.error(passwordError.value)
+    return
+  }
+  isSubmitting.value = true
+  try {
+    const ok = await auth.login(formData.value)
+    if (ok) {
+      message.success(t('auth.loginSuccess'))
+      const redirect = (route.query.redirect as string) || '/'
+      router.replace(redirect)
+    } else {
+      message.error(t('auth.loginFailed'))
+    }
+  } catch (error) {
+    message.error(t('auth.loginFailed'))
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
-<style scoped lang="sass">
-#auth-login
-  max-width: 520px
-  margin: 0 auto
-</style>
+<style scoped lang="sass"></style>

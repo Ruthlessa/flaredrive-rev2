@@ -9,7 +9,7 @@
         icon-placement='right',
         secondary,
         @click='item.onClick'
-      ) 
+      )
         template(#icon, v-if='item.icon'): component(:is='item.icon')
         | {{ item.label }}
 
@@ -58,10 +58,10 @@
             component(:is='item.icon', w-16, h-16, opacity-60)
         template(#default)
           .p-4
-            NEllipsis(text-4, max-w-full) {{ item.key === '/' ? '/(root)' : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
+            NEllipsis(text-4, max-w-full) {{ item.key === '/' ? t("browser.rootDisplay") : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
             .flex(items-center)
               .file-info.flex-1
-                NText(v-if='item.key.endsWith("/")', depth='3', block, text-3) {{ item.key === '/' ? 'root' : item.key === '../' ? 'parent' : 'folder' }}
+                NText(v-if='item.key.endsWith("/")', depth='3', block, text-3) {{ item.key === '/' ? t("browser.rootLabel") : item.key === '../' ? t("browser.parentLabel") : t("browser.folderLabel") }}
                 NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ new Date(item.uploaded || 0).toLocaleString() }}
                 NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ FileHelper.formatFileSize(item.size) }}
               .file-actions(v-if='!item.key.endsWith("/")', @click.stop)
@@ -116,9 +116,9 @@ const changeSort = (key: GallerySortBy) => {
 }
 const sortActions = computed(() => {
   return [
-    { label: 'Name', key: 'key', onClick: () => changeSort('key') },
-    { label: 'Size', key: 'size', onClick: () => changeSort('size') },
-    { label: 'Date', key: 'uploaded', onClick: () => changeSort('uploaded') },
+    { label: t('browser.sort.name'), key: 'key', onClick: () => changeSort('key') },
+    { label: t('browser.sort.size'), key: 'size', onClick: () => changeSort('size') },
+    { label: t('browser.sort.date'), key: 'uploaded', onClick: () => changeSort('uploaded') },
   ].map((item) => {
     return {
       ...item,
@@ -191,13 +191,13 @@ function onClickItem(item: StorageListObject) {
 }
 const fileActionOptions = ref([
   {
-    label: 'Copy URL',
+    label: t('browser.copyUrl'),
     key: 'copy_url',
     icon: () => <IconLink />,
   },
-  { label: 'Download', key: 'download', icon: () => <IconDownload /> },
-  { label: 'Rename', key: 'rename', icon: () => <IconForms /> },
-  { label: () => <NText type="error">Delete</NText>, key: 'delete', icon: () => <IconTrash /> },
+  { label: t('common.download'), key: 'download', icon: () => <IconDownload /> },
+  { label: t('browser.rename'), key: 'rename', icon: () => <IconForms /> },
+  { label: () => <NText type="error">{t('common.delete')}</NText>, key: 'delete', icon: () => <IconTrash /> },
 ])
 const onSelectAction = (action: string, item: StorageListObject) => {
   switch (action) {
@@ -205,10 +205,10 @@ const onSelectAction = (action: string, item: StorageListObject) => {
       navigator.clipboard
         .writeText(bucket.getCDNUrl(item))
         .then(() => {
-          nmessage.success('URL copied to clipboard')
+          nmessage.success(t('messages.urlCopied'))
         })
         .catch((err) => {
-          nmessage.error('Failed to copy URL')
+          nmessage.error(t('messages.copyFailed'))
         })
       break
     case 'download':

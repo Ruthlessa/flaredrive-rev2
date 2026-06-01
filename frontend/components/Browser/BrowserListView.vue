@@ -94,7 +94,7 @@ const columns = computed(() => {
       },
     },
     {
-      title: 'Name',
+      title: t('browser.preview.name'),
       key: 'key',
       minWidth: 200,
       render: (row: StorageListObject) => {
@@ -110,7 +110,7 @@ const columns = computed(() => {
       },
     },
     {
-      title: 'Size',
+      title: t('browser.preview.size'),
       key: 'size',
       align: 'center',
       minWidth: 100,
@@ -127,14 +127,14 @@ const columns = computed(() => {
       },
     },
     {
-      title: 'Type',
+      title: t('browser.preview.type'),
       key: 'httpMetadata.contentType',
       align: 'center',
       minWidth: 100,
       render: (row: StorageListObject) => {
-        if (row.key === '/') return 'root'
-        if (row.key === '../') return 'parent'
-        if (row.key.endsWith('/')) return 'folder'
+        if (row.key === '/') return t('browser.rootLabel')
+        if (row.key === '../') return t('browser.parentLabel')
+        if (row.key.endsWith('/')) return t('browser.folderLabel')
         return row.httpMetadata?.contentType || '?'
       },
       filter(value, row) {
@@ -149,7 +149,7 @@ const columns = computed(() => {
       ],
     },
     {
-      title: 'Last Modified',
+      title: t('browser.preview.lastModified'),
       key: 'uploaded',
       align: 'center',
       render: (row: StorageListObject) => {
@@ -166,22 +166,6 @@ const columns = computed(() => {
     },
   ] as TableColumns<StorageListObject>
   if (!props.noActions) {
-    // selection
-    // cols.unshift({
-    //   type: 'selection',
-    //   disabled(row) {
-    //     return row.key.endsWith('/')
-    //   },
-    //   cellProps(row) {
-    //     return {
-    //       onClick(e) {
-    //         e.stopPropagation()
-    //       },
-    //       style: row.key.endsWith('/') ? { opacity: '0%', pointerEvents: 'none' } : {},
-    //     }
-    //   },
-    // })
-    // actions
     cols.push({
       title: '',
       key: '_actions',
@@ -201,9 +185,9 @@ const columns = computed(() => {
             case 'copy_url':
               const url = bucket.getCDNUrl(row)
               if (await ClipboardHelper.copyText(url)) {
-                nmessage.success('URL copied to clipboard')
+                nmessage.success(t('messages.urlCopied'))
               } else {
-                nmessage.error('Failed to copy URL')
+                nmessage.error(t('messages.copyFailed'))
               }
               break
             case 'download':
@@ -225,18 +209,13 @@ const columns = computed(() => {
             <NDropdown
               options={[
                 {
-                  label: 'Copy URL',
+                  label: t('browser.copyUrl'),
                   key: 'copy_url',
                   icon: () => <IconLink />,
                 },
-                { label: 'Download', key: 'download', icon: () => <IconDownload /> },
-                // {
-                //   label: isPublic ? 'Make Private' : 'Make Public',
-                //   key: 'toggle_public',
-                //   icon: isPublic ? () => <IconWorldOff /> : () => <IconWorld />,
-                // },
-                { label: 'Rename', key: 'rename', icon: () => <IconForms /> },
-                { label: () => <NText type="error">Delete</NText>, key: 'delete', icon: () => <IconTrash /> },
+                { label: t('common.download'), key: 'download', icon: () => <IconDownload /> },
+                { label: t('browser.rename'), key: 'rename', icon: () => <IconForms /> },
+                { label: () => <NText type="error">{t('common.delete')}</NText>, key: 'delete', icon: () => <IconTrash /> },
               ]}
               onSelect={onSelect}
             >

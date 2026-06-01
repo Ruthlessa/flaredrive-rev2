@@ -1,203 +1,204 @@
 <template lang="pug">
-.admin-users-page
-  .flex.items-center.justify-between.mb-6
-    div
-      h1.text-2xl.font-bold.mb-1 User Management
-      NText(depth='3') Manage user accounts and permissions
+.flex.flex-col.gap-4
+  NCard(:title='t("admin.users.title")', :segmented='{ content: "soft" }', hoverable)
+    template(#header-extra)
+      NButton(type='primary', @click='showCreateModal = true')
+        template(#icon): NIcon: IconUserPlus
+        | {{ t('admin.users.newUser') }}
+    NP {{ t('admin.users.desc') }}
 
-    .flex.gap-2
-      NButton(secondary, @click='loadUsers', :loading='isLoading')
-        template(#icon): NIcon: IconRefresh
-      NButton(type='primary', @click='openCreate') New User
+    NDataTable(
+      :columns='columns',
+      :data='list',
+      :loading='pending',
+      :row-key='(row) => row.id',
+      :bordered='false',
+      :single-line='false',
+      flex-height,
+      style='margin-top: 16px'
+    )
 
-  NDataTable(:columns='columns', :data='rows', :loading='isLoading', :row-key='(row) => row.id', scroll-x='100%')
+  NModal(v-model:show='showCreateModal', preset='card', :title='t("admin.users.createTitle")', style='max-width: 600px')
+    NFormItem(
+      :label='t("admin.users.email")',
+      :show-feedback='!createError.email || !!createForm.email',
+      :feedback='createError.email || t("auth.emailPlaceholder")',
+      :validation-status='createError.email ? "error" : undefined'
+    )
+      NInput(v-model:value='createForm.email', :placeholder='t("auth.emailPlaceholder")', autofocus)
+    NFormItem(
+      :label='t("admin.users.password")',
+      :show-feedback='!createError.password || !!createForm.password',
+      :feedback='createError.password || t("auth.passwordPlaceholder")',
+      :validation-status='createError.password ? "error" : undefined'
+    )
+      NInput(v-model:value='createForm.password', type='password', show-password-on='click', :placeholder='t("auth.passwordPlaceholder")')
+    NFormItem(
+      :label='t("admin.users.authLevel")',
+      :show-feedback='!createError.authorizationLevel',
+      :feedback='createError.authorizationLevel || " "',
+      :validation-status='createError.authorizationLevel ? "error" : undefined'
+    )
+      NSelect(
+        v-model:value='createForm.authorizationLevel',
+        :options='[
+          { label: t("admin.users.general"), value: 1 },
+          { label: t("admin.users.advanced"), value: 2 },
+          { label: t("admin.users.systemOperator"), value: 3 }
+        ]'
+      )
 
-  NModal(v-model:show='showCreate', title='Create User', preset='card', style='width: 520px; max-width: 90vw')
-    NForm(:model='form', :rules='rules', ref='formRef', label-width='80')
-      NFormItem(label='Email', path='email')
-        NInput(v-model:value='form.email', placeholder='user@example.com')
-      NFormItem(label='Password', path='password')
-        NInput(v-model:value='form.password', type='password', show-password-on='click')
-      NFormItem(label='Authorization Level', path='authorizationLevel')
-        NSelect(v-model:value='form.authorizationLevel', :options='authOptions')
-      .flex.justify-end.gap-3.mt-4
-        NButton(@click='showCreate = false') Cancel
-        NButton(type='primary', @click='submitCreate', :loading='isSubmitting') Create
+    template(#footer)
+      .flex.justify-end.gap-2
+        NButton(@click='showCreateModal = false') {{ t('admin.users.cancel') }}
+        NButton(type='primary', :loading='isCreating', @click='handleCreate') {{ t('admin.users.create') }}
 </template>
 
 <script setup lang="ts">
-import {
-  NButton,
-  NCard,
-  NDataTable,
-  NForm,
-  NFormItem,
-  NInput,
-  NModal,
-  NSelect,
-  NTag,
-  NSpace,
-  NPopconfirm,
-  useMessage,
-} from 'naive-ui'
-import fexios from 'fexios'
-import { IconRefresh } from '@tabler/icons-vue'
+import { NButton, NIcon, useMessage } from 'naive-ui'
+import type { DataTableColumns, DataTableRowData } from 'naive-ui'
+import { IconTrash, IconUserPlus } from '@tabler/icons-vue'
 
-type AdminUserRow = {
-  id: number
-  email: string
-  authorizationLevel: number
-  createdAt: number
-  bucketCount?: number
+definePageMeta({
+  title: 'admin.users.title',
+  layout: 'admin',
+  requiresAuth: true,
+})
+
+const auth = useAuthStore()
+if ((auth.user?.authorizationLevel || 0) < 3) {
+  throw createError({
+    statusCode: 403,
+    statusMessage: t('common.forbidden'),
+  })
 }
 
 const message = useMessage()
-const rows = ref<AdminUserRow[]>([])
-const isLoading = ref(false)
-const showCreate = ref(false)
-const isSubmitting = ref(false)
 
-const formRef = ref()
-const form = reactive({
+interface AdminUserItem {
+  id: number
+  email: string
+  authorizationLevel: number
+  createdAt?: string
+}
+
+const { data: list, pending, refresh, error } = await useAsyncData('admin-users-list', () =>
+  $fetch<AdminUserItem[]>('/api/admin/users', { method: 'GET' }).then((res) => res || [])
+)
+
+if (error.value) {
+  message.error(t('admin.users.loadFailed'))
+}
+
+const showCreateModal = ref(false)
+const isCreating = ref(false)
+const createForm = ref({
   email: '',
   password: '',
-  authorizationLevel: 1,
+  authorizationLevel: 1 as 1 | 2 | 3,
+})
+const createError = ref<{ email: string; password: string; authorizationLevel: string }>({
+  email: '',
+  password: '',
+  authorizationLevel: '',
 })
 
-const authOptions = [
-  { label: 'General', value: 1 },
-  { label: 'Advanced', value: 2 },
-  { label: 'System Operator', value: 3 },
-]
-
-const rules = {
-  email: {
-    required: true,
-    message: 'Please enter an email',
-    trigger: ['blur', 'input'],
-    validator: (_: any, value: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value),
-  },
-  password: {
-    required: true,
-    message: 'Please enter at least 8 characters for the password',
-    trigger: ['blur', 'input'],
-    validator: (_: any, value: string) => typeof value === 'string' && value.length >= 8,
-  },
-  authorizationLevel: {
-    required: true,
-    message: 'Please select an authorization level',
-    trigger: ['change'],
-  },
+const resetCreateForm = () => {
+  createForm.value = { email: '', password: '', authorizationLevel: 1 }
+  createError.value = { email: '', password: '', authorizationLevel: '' }
 }
-
-const resetForm = () => {
-  form.email = ''
-  form.password = ''
-  form.authorizationLevel = 1
-}
-
-const loadUsers = async () => {
-  isLoading.value = true
-  try {
-    const { data } = await fexios.get<AdminUserRow[]>('/api/admin/users')
-    rows.value = data || []
-  } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Failed to load')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(() => {
-  loadUsers()
+watch(showCreateModal, (open) => {
+  if (open) resetCreateForm()
 })
 
-const openCreate = () => {
-  resetForm()
-  showCreate.value = true
-}
+const handleCreate = async () => {
+  const err = { email: '', password: '', authorizationLevel: '' }
+  if (!createForm.value.email) err.email = t('admin.users.pleaseEnterEmail')
+  else if (!/^[\w-.]+@[\w-]+(\.[\w-]+)+$/.test(createForm.value.email)) err.email = t('auth.invalidEmail')
 
-const submitCreate = async () => {
-  const ok = await formRef.value
-    ?.validate?.()
-    .then(() => true)
-    .catch(() => false)
-  if (!ok) return
+  if (!createForm.value.password || createForm.value.password.length < 8) {
+    err.password = t('admin.users.pleaseEnterPassword')
+  }
 
-  isSubmitting.value = true
+  if (![1, 2, 3].includes(createForm.value.authorizationLevel)) {
+    err.authorizationLevel = t('admin.users.pleaseSelectAuthLevel')
+  }
+  createError.value = err
+  if (err.email || err.password || err.authorizationLevel) return
+
+  isCreating.value = true
   try {
-    await fexios.post('/api/admin/users', form)
-    message.success('Created successfully')
-    showCreate.value = false
-    await loadUsers()
+    await $fetch('/api/admin/users', {
+      method: 'POST',
+      body: {
+        email: createForm.value.email,
+        password: createForm.value.password,
+        authorizationLevel: createForm.value.authorizationLevel,
+      },
+    })
+    message.success(t('admin.users.created'))
+    showCreateModal.value = false
+    await refresh()
   } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Creation failed')
+    message.error(t('admin.users.createFailed'))
   } finally {
-    isSubmitting.value = false
+    isCreating.value = false
   }
 }
 
-const updateAuthLevel = async (row: AdminUserRow, value: number) => {
-  try {
-    await fexios.patch(`/api/admin/users/${row.id}`, { authorizationLevel: value })
-    message.success('Updated successfully')
-    await loadUsers()
-  } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Update failed')
-  }
-}
-
-const handleDelete = async (row: AdminUserRow) => {
-  try {
-    await fexios.delete(`/api/admin/users/${row.id}`)
-    message.success('Deleted successfully')
-    await loadUsers()
-  } catch (e: any) {
-    message.error(e?.response?.data?.error || e?.message || 'Deletion failed')
-  }
-}
-
-const columns = [
-  { title: 'ID', key: 'id', width: 80 },
-  { title: 'Email', key: 'email', width: 220, ellipsis: true },
+const columns = computed<DataTableColumns<DataTableRowData>>(() => [
   {
-    title: 'Authorization Level',
+    title: 'ID',
+    key: 'id',
+    width: 50,
+  },
+  {
+    title: t('admin.users.email'),
+    key: 'email',
+  },
+  {
+    title: t('admin.users.authLevel'),
     key: 'authorizationLevel',
-    width: 160,
-    render: (row: AdminUserRow) =>
-      h(NSelect, {
-        value: row.authorizationLevel,
-        options: authOptions,
-        size: 'small',
-        onUpdateValue: (value: number) => updateAuthLevel(row, value),
-      }),
-  },
-  {
-    title: 'Bucket Count',
-    key: 'bucketCount',
-    width: 80,
-    render: (row: AdminUserRow) => h(NTag, { size: 'small' }, () => String(row.bucketCount ?? 0)),
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    width: 120,
-    render(row: AdminUserRow) {
-      return h(NSpace, {}, () => [
-        h(
-          NPopconfirm,
-          {
-            onPositiveClick: () => handleDelete(row),
-            'positive-text': 'Delete',
-            'negative-text': 'Cancel',
-          },
-          {
-            trigger: () => h(NButton, { size: 'small', type: 'error', secondary: true }, { default: () => 'Delete' }),
-            default: () => `Delete user "${row.email}"?`,
-          }
-        ),
-      ])
+    render(row) {
+      if (row.authorizationLevel === 1) return t('admin.users.general')
+      if (row.authorizationLevel === 2) return t('admin.users.advanced')
+      if (row.authorizationLevel === 3) return t('admin.users.systemOperator')
+      return String(row.authorizationLevel)
     },
   },
-]
+  {
+    title: t('common.actions'),
+    key: 'actions',
+    width: 100,
+    render(row) {
+      return h(
+        NButton,
+        {
+          size: 'small',
+          type: 'error',
+          secondary: true,
+          onClick: () => handleDelete(row),
+        },
+        {
+          default: () => t('common.delete'),
+          icon: () => h(NIcon, null, { default: () => h(IconTrash) }),
+        }
+      )
+    },
+  },
+])
+
+const handleDelete = async (row: any) => {
+  const dlg = window.confirm(t('admin.users.deleteUser', { email: row.email }))
+  if (!dlg) return
+  try {
+    await $fetch(`/api/admin/users/${row.id}`, { method: 'DELETE' })
+    message.success(t('admin.users.deleted'))
+    await refresh()
+  } catch (e: any) {
+    message.error(t('admin.users.deleteFailed'))
+  }
+}
 </script>
+
+<style scoped lang="sass"></style>

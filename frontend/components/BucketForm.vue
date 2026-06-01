@@ -1,207 +1,175 @@
 <template lang="pug">
-NForm.space-y-4(ref='formRef', :model='formValue', :rules='rules', @submit.prevent='handleSubmit')
-  NFormItem(label='Display Name', path='name', feedback='Display name for this bucket')
-    NInput(v-model:value='formValue.name', placeholder='e.g. My Assets', size='large')
-      template(#prefix)
-        IconTag
-
-  NFormItem(label='Bucket Name', path='bucketName', feedback='Actual S3 bucket name')
-    NInput(v-model:value='formValue.bucketName', placeholder='e.g. my-s3-bucket', size='large')
-      template(#prefix)
-        IconDatabase
-
-  NFormItem(label='Endpoint URL', path='endpointUrl', feedback='S3 endpoint URL')
-    NInput(v-model:value='formValue.endpointUrl', placeholder='e.g. https://s3.amazonaws.com', size='large')
-      template(#prefix)
-        IconServer
-
-  NFormItem(label='Region', path='region')
-    NInput(v-model:value='formValue.region', placeholder='e.g. us-east-1 or auto', size='large')
-      template(#prefix)
-        IconMapPin
-
-  .grid.gap-4.grid-cols-1(class='md:grid-cols-2')
-    NFormItem(label='Access Key ID', path='accessKeyId')
-      NInput(
-        v-model:value='formValue.accessKeyId',
-        :placeholder='bucket ? "Leave empty to keep unchanged" : "Enter Access Key ID"',
-        size='large'
-      )
-        template(#prefix)
-          IconKey
-
-    NFormItem(label='Secret Access Key', path='secretAccessKey')
-      NInput(
-        v-model:value='formValue.secretAccessKey',
-        type='password',
-        :placeholder='bucket ? "Leave empty to keep unchanged" : "Enter Secret Access Key"',
-        size='large',
-        show-password-on='click',
-        :input-props='{ autocomplete: "new-password" }'
-      )
-        template(#prefix)
-          IconLock
-
-  NFormItem(label='CDN Base URL', path='cdnBaseUrl', feedback='Optional, public URL prefix for files')
-    NInput(v-model:value='formValue.cdnBaseUrl', placeholder='e.g. https://cdn.example.com', size='large')
-      template(#prefix)
-        IconGlobe
+NForm(label-placement='top', :model='formData', :rules='rules', ref='formRef')
+  NFormItem(
+    :label='t("bucket.form.displayName")',
+    path='name',
+    :show-feedback='true',
+    :feedback='t("bucket.form.displayNameFeedback")'
+  )
+    NInput(v-model:value='formData.name', :placeholder='t("bucket.form.displayNamePlaceholder")', clearable)
 
   NFormItem(
-    label='Edge Thumbnail URL (Optional)',
-    path='edgeThumbnailUrl',
-    feedback='URL structure for edge-rendered thumbnails. Variables: {cdn_base_url}, {width}, {height}, {file_key}'
+    :label='t("bucket.form.bucketName")',
+    path='bucketName',
+    :show-feedback='true',
+    :feedback='t("bucket.form.bucketNameFeedback")'
   )
-    .flex.flex-col.gap-2.w-full
-      NInput(v-model:value='formValue.edgeThumbnailUrl', placeholder='URL Template', size='large')
-        template(#prefix)
-          IconPhoto
-      .flex.gap-2.flex-wrap
-        NButton(
-          v-for='preset in edgeThumbnailPresets',
-          :key='preset.label',
-          size='small',
-          dashed,
-          @click='formValue.edgeThumbnailUrl = preset.value'
-        ) {{ preset.label }}
+    NInput(v-model:value='formData.bucketName', :placeholder='t("bucket.form.bucketNamePlaceholder")', clearable)
 
-  NFormItem(label='Upload Method', path='uploadMethod')
-    NSelect(
-      v-model:value='formValue.uploadMethod',
-      size='large',
-      :options='uploadMethodOptions',
-      placeholder='Select upload method'
+  NFormItem(
+    :label='t("bucket.form.endpointUrl")',
+    path='endpoint',
+    :show-feedback='true',
+    :feedback='t("bucket.form.endpointUrlFeedback")'
+  )
+    NInput(v-model:value='formData.endpoint', :placeholder='t("bucket.form.endpointUrlPlaceholder")', clearable)
+
+  NFormItem(
+    :label='t("bucket.form.region")',
+    path='region',
+    :show-feedback='true',
+    :feedback='t("bucket.form.regionPlaceholder")'
+  )
+    NInput(v-model:value='formData.region', :placeholder='t("bucket.form.regionPlaceholder")', clearable)
+
+  NFormItem(
+    :label='t("bucket.form.accessKeyId")',
+    path='accessKeyId',
+    :show-feedback='true',
+    :feedback='""'
+  )
+    NInput(v-model:value='formData.accessKeyId', :placeholder='t("bucket.form.accessKeyIdPlaceholderNew")', clearable)
+
+  NFormItem(
+    :label='t("bucket.form.secretAccessKey")',
+    path='secretAccessKey',
+    :show-feedback='true',
+    :feedback='""'
+  )
+    NInput(
+      v-model:value='formData.secretAccessKey',
+      type='password',
+      show-password-on='click',
+      :placeholder='t("bucket.form.secretAccessKeyPlaceholderNew")',
+      clearable
     )
 
-  NFormItem(label='Force Path Style', path='forcePathStyle')
-    NSwitch(v-model:checked='formValue.forcePathStyle') 
-      template(#checked) Enabled
-      template(#unchecked) Disabled
+  NFormItem(
+    :label='t("bucket.form.cdnBaseUrl")',
+    path='cdnBaseUrl',
+    :show-feedback='true',
+    :feedback='t("bucket.form.cdnBaseUrlFeedback")'
+  )
+    NInput(v-model:value='formData.cdnBaseUrl', :placeholder='t("bucket.form.cdnBaseUrlPlaceholder")', clearable)
 
-  .flex.justify-end.gap-3.pt-4
-    NButton(type='error', quaternary, @click='$emit("cancel")') Cancel
-    NButton(attr-type='submit', type='primary', :loading='loading') {{ bucket ? 'Save Changes' : 'Create Bucket' }}
+  NFormItem(
+    :label='t("bucket.form.edgeThumbnailUrl")',
+    path='edgeThumbnailUrl',
+    :show-feedback='true',
+    :feedback='t("bucket.form.edgeThumbnailUrlFeedback")'
+  )
+    NInput(v-model:value='formData.edgeThumbnailUrl', :placeholder='t("bucket.form.edgeThumbnailUrlPlaceholder")', clearable)
+
+  NFormItem(
+    :label='t("bucket.form.uploadMethod")',
+    path='uploadMethod',
+    :show-feedback='true',
+    :feedback='t("bucket.form.uploadMethodPlaceholder")'
+  )
+    NSelect(
+      v-model:value='formData.uploadMethod',
+      :options='[
+        { label: t("bucket.form.uploadMethodPresigned"), value: "presigned" },
+        { label: t("bucket.form.uploadMethodProxy"), value: "proxy" }
+      ]',
+      :placeholder='t("bucket.form.uploadMethodPlaceholder")'
+    )
+
+  NFormItem(
+    :label='t("bucket.form.forcePathStyle")',
+    path='forcePathStyle',
+    :show-feedback='true',
+    :feedback='""'
+  )
+    NSwitch(v-model:value='formData.forcePathStyle')
+
+  .flex.gap-2.mt-4
+    NButton(type='primary', :loading='saving', @click='handleSubmit') {{ t('common.save') }}
+    NButton(@click='$emit("close")') {{ t('common.cancel') }}
 </template>
 
 <script setup lang="ts">
-import type { BucketInfo } from '@/models/BucketClient'
-import {
-  IconTag,
-  IconDatabase,
-  IconServer,
-  IconMapPin,
-  IconKey,
-  IconLock,
-  IconGlobe,
-  IconPhoto,
-} from '@tabler/icons-vue'
-import fexios from 'fexios'
-import { useMessage, type FormInst, type FormRules } from 'naive-ui'
+import { useMessage, type FormInst } from 'naive-ui'
 
-const props = defineProps<{
-  bucket?: BucketInfo
+const emit = defineEmits<{
+  close: []
+  save: []
 }>()
 
-const emit = defineEmits(['success', 'cancel'])
 const message = useMessage()
-const loading = ref(false)
 const formRef = ref<FormInst | null>(null)
 
-const formValue = reactive({
-  name: props.bucket?.name || '',
-  bucketName: props.bucket?.bucketName || '',
-  endpointUrl: props.bucket?.endpointUrl || '',
-  region: props.bucket?.region || 'auto',
+const formData = reactive({
+  name: '',
+  bucketName: '',
+  endpoint: '',
+  region: 'auto',
   accessKeyId: '',
   secretAccessKey: '',
-  cdnBaseUrl: props.bucket?.cdnBaseUrl || '',
-  edgeThumbnailUrl: props.bucket?.edgeThumbnailUrl || '',
-  forcePathStyle: props.bucket?.forcePathStyle === 1 || props.bucket?.forcePathStyle === true,
-  uploadMethod: props.bucket?.uploadMethod || 'presigned',
+  cdnBaseUrl: '',
+  edgeThumbnailUrl: '',
+  uploadMethod: 'presigned' as 'presigned' | 'proxy',
+  forcePathStyle: true,
 })
 
-const uploadMethodOptions = [
-  { label: 'Presigned direct upload', value: 'presigned' },
-  { label: 'FlareDrive proxy upload', value: 'proxy' },
-]
-
-const edgeThumbnailPresets = [
-  {
-    label: 'Cloudflare',
-    value:
-      '{cdn_base_url}cdn-cgi/image/format=auto,fit=contain,width={width},height={height},onerror=redirect/{file_key}',
-  },
-  {
-    label: 'Upyun',
-    value: '{cdn_base_url}{file_key}!/fwfh/{width}x{height}/format/webp',
-  },
-]
-
-const rules = computed<FormRules>(() => {
-  return {
-    name: { required: true, message: 'Please enter display name', trigger: 'blur' },
-    bucketName: { required: true, message: 'Please enter bucket name', trigger: 'blur' },
-    endpointUrl: [
-      { required: true, message: 'Please enter endpoint URL', trigger: 'blur' },
-      {
-        validator: (rule, value) => {
-          try {
-            new URL(value)
-            return true
-          } catch {
-            return new Error('Please enter a valid URL')
-          }
-        },
-        trigger: 'blur',
+const rules = {
+  name: [
+    { required: true, message: () => t('bucket.form.pleaseEnterName'), trigger: 'blur' },
+  ],
+  bucketName: [
+    { required: true, message: () => t('bucket.form.pleaseEnterBucketName'), trigger: 'blur' },
+  ],
+  endpoint: [
+    { required: true, message: () => t('bucket.form.pleaseEnterEndpoint'), trigger: 'blur' },
+    {
+      validator: (_: any, value: string) => {
+        if (!value) return true
+        try {
+          new URL(value)
+          return true
+        } catch {
+          return false
+        }
       },
-    ],
-    region: { required: true, message: 'Please enter region', trigger: 'blur' },
-    accessKeyId: {
-      required: !props.bucket,
-      message: 'Please enter Access Key ID',
+      message: () => t('bucket.form.pleaseEnterValidUrl'),
       trigger: 'blur',
     },
-    secretAccessKey: {
-      required: !props.bucket,
-      message: 'Please enter Secret Access Key',
-      trigger: 'blur',
-    },
-    uploadMethod: { required: true, message: 'Please select upload method', trigger: 'blur' },
-  }
-})
+  ],
+  region: [{ required: true, message: () => t('bucket.form.pleaseEnterRegion'), trigger: 'blur' }],
+  accessKeyId: [{ required: true, message: () => t('bucket.form.pleaseEnterAccessKey'), trigger: 'blur' }],
+  secretAccessKey: [{ required: true, message: () => t('bucket.form.pleaseEnterSecretKey'), trigger: 'blur' }],
+  uploadMethod: [{ required: true, message: () => t('bucket.form.pleaseSelectUploadMethod'), trigger: 'change' }],
+}
 
+const saving = ref(false)
 const handleSubmit = async () => {
+  if (!formRef.value) return
   try {
-    await formRef.value?.validate()
-
-    loading.value = true
-
-    const payload = {
-      ...formValue,
-      forcePathStyle: formValue.forcePathStyle ? 1 : 0,
-    }
-
-    if (props.bucket) {
-      // Edit Mode
-      await fexios.put(`/api/buckets/${props.bucket.id}`, payload)
-      message.success('Bucket updated successfully')
-    } else {
-      // Create Mode
-      await fexios.post('/api/buckets', payload)
-      message.success('Bucket created successfully')
-    }
-
-    emit('success')
-  } catch (error: any) {
-    if (error?.message?.includes('validation failed')) {
-      // Validation error, do nothing
-      return
-    }
-    console.error('Failed to save bucket:', error)
-    const msg = error.response?.data?.error || error.message || 'Operation failed'
-    message.error(msg)
+    await formRef.value.validate()
+  } catch (e) {
+    return
+  }
+  saving.value = true
+  try {
+    await $fetch('/api/admin/buckets', { method: 'POST', body: { ...formData } })
+    message.success(t('bucket.bucketCreated'))
+    emit('save')
+  } catch (e: any) {
+    message.error(t('common.operationFailed') + ': ' + (e?.data?.message || e?.message || ''))
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 </script>
+
+<style scoped lang="sass"></style>

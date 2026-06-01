@@ -1,105 +1,129 @@
 <template lang="pug">
-#auth-register
-  NCard(title='Register', size='large')
-    NAlert(v-if='!allowRegister', type='warning', show-icon) Sorry, registration is currently closed.
-    NForm(:model='form', :rules='rules', ref='formRef', label-placement='top')
-      NFormItem(label='Email', path='email')
-        NInput(v-model:value='form.email', placeholder='you@example.com', autofocus, :disabled='!allowRegister')
-      NFormItem(label='Password', path='password')
-        NInput(
-          v-model:value='form.password',
-          type='password',
-          show-password-on='click',
-          placeholder='At least 8 characters',
-          :disabled='!allowRegister'
-        )
-      NFormItem(label='Confirm Password', path='password2')
-        NInput(v-model:value='form.password2', type='password', show-password-on='click', :disabled='!allowRegister')
-      .flex(gap-3, items-center)
-        NButton(type='primary', :loading='submitting', :disabled='!allowRegister', @click='onSubmit') Register and Login
-        NButton(quaternary, @click='goLogin') I have an account
+.flex.flex-col.items-center.justify-center(min-h='80vh', px-4, py-8)
+  NAlert(v-if='!site.allowRegister', type='warning', :title='t("auth.registrationClosed")', :description='t("auth.registrationClosedAlert")', mb-4, max-w-400px, w-full)
+  NCard(
+    :title='t("auth.register")',
+    style='width: 100%; max-width: 400px',
+    hoverable,
+    @keyup.enter='onSubmit'
+  )
+    NFormItem(
+      :label='t("auth.email")',
+      :show-feedback='!emailError || !!formData.email',
+      :feedback='emailError || t("auth.emailPlaceholder")',
+      :validation-status='emailError ? "error" : undefined'
+    )
+      NInput(v-model:value='formData.email', :placeholder='t("auth.emailPlaceholder")', autofocus)
+    NFormItem(
+      :label='t("auth.password")',
+      :show-feedback='!passwordError || !!formData.password',
+      :feedback='passwordError || t("auth.passwordPlaceholder")',
+      :validation-status='passwordError ? "error" : undefined'
+    )
+      NInput(v-model:value='formData.password', type='password', show-password-on='click', :placeholder='t("auth.passwordPlaceholder")')
+    NFormItem(
+      :label='t("auth.confirmPassword")',
+      :show-feedback='!confirmPasswordError || !!formData.confirmPassword',
+      :feedback='confirmPasswordError || t("auth.pleaseConfirmPassword")',
+      :validation-status='confirmPasswordError ? "error" : undefined'
+    )
+      NInput(v-model:value='formData.confirmPassword', type='password', show-password-on='click', :placeholder='t("auth.passwordPlaceholder")')
+
+    NButton(type='primary', block, @click='onSubmit', :loading='isSubmitting', :disabled='!site.allowRegister') {{ t('auth.registerAndLogin') }}
+    .text-center.mt-4
+      NText(depth='3') {{ t('auth.iHaveAccount') }} ·
+      NA(href='/auth/login', text): strong {{ t('auth.login') }}
 </template>
 
 <script setup lang="ts">
-import { NAlert, NButton, NCard, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
-import type { FormInst, FormRules } from 'naive-ui'
+import { useMessage } from 'naive-ui'
+import type { LoginData } from '@/models/Auth'
 
-definePage({
-  name: 'auth-register',
+definePageMeta({
+  title: 'auth.register',
+  layout: 'default',
 })
 
 const auth = useAuthStore()
 const site = useSiteStore()
-const route = useRoute()
-const router = useRouter()
 const message = useMessage()
-const allowRegister = computed(() => site.allowRegister)
+const router = useRouter()
+const route = useRoute()
 
-const redirectTo = computed(() => {
-  const q = route.query.redirect
-  return typeof q === 'string' && q ? q : '/'
-})
-
-const form = reactive({
+const formData = ref<LoginData & { confirmPassword: string }>({
   email: '',
   password: '',
-  password2: '',
+  confirmPassword: '',
 })
 
-const rules: FormRules = {
-  email: [
-    { required: true, message: 'Please enter your email', trigger: ['blur', 'input'] },
-    { type: 'email', message: 'Invalid email format', trigger: ['blur', 'input'] },
-  ],
-  password: [
-    { required: true, message: 'Please enter your password', trigger: ['blur', 'input'] },
-    { min: 8, message: 'Password must be at least 8 characters', trigger: ['blur', 'input'] },
-  ],
-  password2: [
-    { required: true, message: 'Please confirm your password', trigger: ['blur', 'input'] },
-    {
-      validator: (_rule, value) => value === form.password,
-      message: 'The two passwords do not match',
-      trigger: ['blur', 'input'],
-    },
-  ],
-}
+const isSubmitting = ref(false)
 
-const submitting = ref(false)
-const formRef = ref<FormInst | null>(null)
+const emailError = computed(() => {
+  if (!formData.value.email) return ''
+  if (!/^[\w-.]+@[\w-]+(\.[\w-]+)+$/.test(formData.value.email)) {
+    return t('auth.invalidEmail')
+  }
+  return ''
+})
+const passwordError = computed(() => {
+  if (!formData.value.password) return ''
+  if (formData.value.password.length < 8) {
+    return t('auth.passwordMinLength')
+  }
+  return ''
+})
+const confirmPasswordError = computed(() => {
+  if (!formData.value.confirmPassword) return ''
+  if (formData.value.confirmPassword !== formData.value.password) {
+    return t('auth.passwordsNotMatch')
+  }
+  return ''
+})
 
 const onSubmit = async () => {
-  if (!allowRegister.value) {
-    message.warning('Registration is currently closed')
+  if (!formData.value.email) {
+    message.error(t('auth.pleaseEnterEmail'))
     return
   }
-  if (submitting.value) return
-  const ok = await formRef.value
-    ?.validate()
-    .then(() => true)
-    .catch(() => false)
-  if (!ok) return
-
-  submitting.value = true
-  try {
-    await auth.register({ email: form.email, password: form.password })
-    await auth.login({ email: form.email, password: form.password })
-    message.success('Registration successful')
-    await router.replace(redirectTo.value)
-  } catch (e: any) {
-    message.error(e?.message || 'Registration failed')
-  } finally {
-    submitting.value = false
+  if (!formData.value.password) {
+    message.error(t('auth.pleaseEnterPassword'))
+    return
   }
-}
-
-const goLogin = () => {
-  router.push({ name: 'auth-login', query: { redirect: redirectTo.value } })
+  if (!formData.value.confirmPassword) {
+    message.error(t('auth.pleaseConfirmPassword'))
+    return
+  }
+  if (emailError.value) {
+    message.error(emailError.value)
+    return
+  }
+  if (passwordError.value) {
+    message.error(passwordError.value)
+    return
+  }
+  if (confirmPasswordError.value) {
+    message.error(confirmPasswordError.value)
+    return
+  }
+  isSubmitting.value = true
+  try {
+    const ok = await auth.register({
+      email: formData.value.email,
+      password: formData.value.password,
+    })
+    if (ok) {
+      message.success(t('auth.registerSuccess'))
+      const redirect = (route.query.redirect as string) || '/'
+      router.replace(redirect)
+    } else {
+      message.error(t('auth.registerFailed'))
+    }
+  } catch (error) {
+    message.error(t('auth.registerFailed'))
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
-<style scoped lang="sass">
-#auth-register
-  max-width: 520px
-  margin: 0 auto
-</style>
+<style scoped lang="sass"></style>

@@ -1,7 +1,7 @@
 <template lang="pug">
 NDrawer(v-model:show='show', placement='bottom', default-height='75vh', resizable)
   NDrawerContent(closable)
-    template(#header) Upload History
+    template(#header) {{ t('browser.uploadHistoryTitle') }}
     BrowserListView(
       :payload='payload',
       no-folder,

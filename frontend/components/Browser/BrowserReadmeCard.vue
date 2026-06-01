@@ -1,7 +1,7 @@
 <template lang="pug">
 .browser-readme-card(ref='containerRef')
   NCard(title='README.md')
-    MarkdownRender(:value='content || "Loading..."', tag='div', prose, max-w='unset')
+    MarkdownRender(:value='content || t("common.loading")', tag='div', prose, max-w='unset')
     template(#header-extra, v-if='item')
       NButton(circle, @click='emit("navigate", item)', size='small', tertiary)
         template(#icon): IconInfoCircle

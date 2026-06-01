@@ -38,7 +38,7 @@
             BrowserTextRender(:item, auto-load, min-h-200px)
             NText(depth='3', text-2, select-none) --- EOF ---
 
-    NCard(v-if='folders.length > 0', title='Navigation', mt-4)
+    NCard(v-if='folders.length > 0', :title='t("browser.navigation")', mt-4)
       .flex.flex-wrap(gap-2)
         NCard.folder-item(
           v-for='(item, index) in folders',
@@ -79,7 +79,7 @@ const route = useRoute()
 const currentBucket = computed(() => (route.params as any).bucket as string)
 
 const bookName = computed(() => {
-  if (!props.payload) return 'Loading...'
+  if (!props.payload) return t('common.loading')
   const pathParts = props.payload.prefix.split('/').filter(Boolean)
   const thisPart = pathParts[pathParts.length - 1]
   // 从后往前找最后一个不是纯数字组成的文件夹名
@@ -87,7 +87,7 @@ const bookName = computed(() => {
     return part && !/^\d+$/.test(part)
   })
   if (!maybeBookName || maybeBookName === thisPart) {
-    return thisPart || 'Untitled'
+    return thisPart || t('common.untitled')
   }
   return `${maybeBookName} - ${thisPart}`
 })

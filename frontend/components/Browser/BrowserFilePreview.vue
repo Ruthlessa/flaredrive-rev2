@@ -20,26 +20,26 @@
         div(v-if='rawTextContent !== null', min-h='200px', max-h='50vh', overflow-auto)
           MarkdownRender(:value='rawTextContent', tag='div')
         NSpin(v-else, show, size='small')
-          NP Loading...
+          NP {{ t('browser.preview.loading') }}
       .preview-file-text(v-else-if='previewType === "text"')
         div(v-if='rawTextContent !== null', min-h='200px', max-h='50vh', overflow-auto)
           Hljs(:code='rawTextContent', :lang='fileNameParts.ext')
         NSpin(v-else, show, size='small')
-          NP Loading...
+          NP {{ t('browser.preview.loading') }}
       .preview-file-iframe(v-else-if='previewType === "iframe"', text-center)
-        iframe(:src='cdnUrl', w-full, h-50vh, onerror='this.replaceWith("Error loading file")')
+        iframe(:src='cdnUrl', w-full, h-50vh, :onerror="`this.replaceWith('${t('browser.preview.errorLoading')}')`")
       .preview-file-unknown(v-else, text-center)
         NIcon(size='40'): IconFileUnknown
-        NP Preview not supported
+        NP {{ t('browser.preview.previewNotSupported') }}
 
     .preview-actions(mt-4, text-center)
       NButtonGroup
         NButton(size='small', type='primary', @click='emit("download", item)')
           template(#icon): NIcon: IconDownload
-          | Download
+          | {{ t('common.download') }}
         NButton(size='small', type='info', secondary, @click='handleCopyURL')
           template(#icon): NIcon: IconCopy
-          | URL
+          | {{ t('browser.copyUrl') }}
         <!-- 暂未实现 -->
         <!-- NButton(size='small', @click='emit("toggle-public", item)')
           template(#icon): NIcon: component(:is='isPublic ? IconWorldOff : IconWorld')
@@ -50,26 +50,26 @@
     .preview-details(v-if='item', mt-4, flex, flex-col, gap-4)
       NTable
         tr
-          th Name
+          th {{ t('browser.preview.name') }}
           td {{ fileNameParts.name }}
         tr
-          th Size
+          th {{ t('browser.preview.size') }}
           td {{ FileHelper.formatFileSize(item.size) }}
         tr
-          th Type
-          td {{ item.httpMetadata?.contentType || 'unknown' }}
+          th {{ t('browser.preview.type') }}
+          td {{ item.httpMetadata?.contentType || t('common.unknown') }}
         tr
-          th Last Modified
-          td {{ DateHelper.formatLocaleString(item.uploaded) || 'unknown' }}
+          th {{ t('browser.preview.lastModified') }}
+          td {{ DateHelper.formatLocaleString(item.uploaded) || t('common.unknown') }}
         tr
-          th Custom Metadata
-          td(v-if='!Object.keys(item?.customMetadata || {}).length') No metadata
+          th {{ t('browser.preview.customMetadata') }}
+          td(v-if='!Object.keys(item?.customMetadata || {}).length') {{ t('browser.preview.noMetadata') }}
           NTable(v-else, :bordered='false', size='small')
             tr(v-for='(value, key) in (item.customMetadata || {})')
               th(width='100') {{ decodeURIComponent(key) }}
               td: code {{ decodeURIComponent(value) }}
         tr
-          th CDN URL
+          th {{ t('browser.preview.cdnUrl') }}
           td: NA(:href='cdnUrl', target='_blank') {{ cdnUrl }}
 
       details
@@ -97,7 +97,7 @@ const emit = defineEmits<{
 }>()
 
 const bucket = useBucketStore()
-const message = useMessage()
+const nmessage = useMessage()
 
 const isPublic = computed(() => {
   return !!(props.item?.customMetadata as any)?.isPublic
@@ -141,13 +141,12 @@ watch(
   { immediate: true }
 )
 
-const nmessage = useMessage()
 const handleCopyURL = async () => {
   if (!props.item) return
   if (await ClipboardHelper.copyText(bucket.getCDNUrl(props.item))) {
-    nmessage.success('URL copied to clipboard')
+    nmessage.success(t('messages.urlCopied'))
   } else {
-    nmessage.error('Failed to copy URL')
+    nmessage.error(t('messages.copyFailed'))
   }
 }
 </script>

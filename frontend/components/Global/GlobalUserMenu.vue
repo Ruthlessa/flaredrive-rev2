@@ -4,7 +4,7 @@
   NButton(v-if='!auth.isAuthed', type='primary', secondary, @click='$router.push("/auth/login")')
     template(#icon)
       NIcon(:component='IconLogin')
-    | Login
+    | {{ t('auth.login') }}
 
   //- Logged In
   NDropdown(v-else, :options='menuOptions', @select='handleSelect')
@@ -31,12 +31,12 @@ const showAdmin = computed(() => (auth.user?.authorizationLevel || 0) >= 3)
 const menuOptions = computed(() => {
   const opts = [
     {
-      label: 'Preferences',
+      label: t('nav.preferences'),
       key: 'preferences',
       icon: renderIcon(IconTools),
     },
     {
-      label: 'Logout',
+      label: t('nav.logout'),
       key: 'logout',
       icon: renderIcon(IconLogout),
     },
@@ -45,7 +45,7 @@ const menuOptions = computed(() => {
   // Add Admin Settings if authorizationLevel > 0 (Assumption)
   if (showAdmin.value) {
     opts.unshift({
-      label: 'Admin Dashboard',
+      label: t('nav.adminDashboard'),
       key: 'admin',
       icon: renderIcon(IconDashboard),
     })
