@@ -158,16 +158,34 @@ export const useBucketStore = defineStore('bucket', () => {
 
   const getCDNUrl = (payload: StorageListObject | string, bucketName = currentBucketName.value) => {
     if (!payload) {
+      console.warn('[CDN] Payload is empty')
       return ''
     }
     const filePath = typeof payload === 'string' ? payload : payload.key
     if (!filePath) {
+      console.warn('[CDN] File path is empty')
       return ''
     }
-    const cdnBaseUrl =
-      bucketCdnMap.value[bucketName] || (bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL)
-    const url = new URL(filePath, cdnBaseUrl)
-    return url.toString()
+    
+    const configuredCdnUrl = bucketCdnMap.value[bucketName]
+    const fallbackUrl = bucketName ? normalizeCdnBaseUrl(`/api/raw/${bucketName}/`) : CDN_BASE_URL
+    const cdnBaseUrl = configuredCdnUrl || fallbackUrl
+    
+    console.info('[CDN] Generating URL:', {
+      bucketName,
+      configuredCdnUrl,
+      fallbackUrl,
+      using: cdnBaseUrl,
+      filePath
+    })
+    
+    try {
+      const url = new URL(filePath, cdnBaseUrl)
+      return url.toString()
+    } catch (e) {
+      console.error('[CDN] Error generating URL:', e)
+      return filePath
+    }
   }
 
   const getThumbnailUrl = (
