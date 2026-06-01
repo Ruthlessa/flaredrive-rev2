@@ -120,6 +120,7 @@ buckets.put('/:id', async (ctx) => {
     .where(and(eq(bucketsTable.id, id), eq(bucketsTable.ownerUserId, user.id)))
     .run()
 
+  await invalidateBucketConfigCache(ctx, id)
   return ctx.json({ ok: true })
 })
 
@@ -136,6 +137,7 @@ buckets.delete('/:id', async (ctx) => {
     .where(and(eq(bucketsTable.id, id), eq(bucketsTable.ownerUserId, user.id)))
     .run()
 
+  await invalidateBucketConfigCache(ctx, id)
   return ctx.json({ ok: true })
 })
 

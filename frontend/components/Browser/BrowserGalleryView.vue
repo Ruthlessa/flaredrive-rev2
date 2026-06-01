@@ -27,13 +27,17 @@
       overflow-hidden
     )
       template(#cover)
-        img(
-          v-if='item.previewType === "image"',
-          @click.stop,
-          :src='item.thumbnailUrl',
-          :alt='item.key',
-          loading='lazy'
-        )
+        .image-container(v-if='item.previewType === "image"', h-full)
+          img(
+            v-if='!item.imageError',
+            @click.stop,
+            :src='item.thumbnailUrl',
+            :alt='item.key',
+            loading='lazy',
+            @error='handleImageError(item)'
+          )
+          .error-placeholder(v-else, flex, items-center, justify-center, h-full, w-full, bg='gray-100 dark:gray-800)
+            component(:is='IconPhoto', w-16, h-16, opacity-60)
         .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-60)
           component(:is='item.icon', w-16, h-16, opacity-60)
       template(#default)
@@ -57,6 +61,7 @@ import {
   IconDownload,
   IconForms,
   IconLink,
+  IconPhoto,
   IconSortAscending,
   IconSortDescending,
   IconTrash,
@@ -111,6 +116,7 @@ const list = computed<
     cdnUrl?: string
     icon?: Component
     previewType?: ReturnType<typeof FileHelper.getPreviewType>
+    imageError?: boolean
   })[]
 >(() => {
   if (!props.payload) return [] as any
@@ -136,16 +142,23 @@ const list = computed<
         thumbnailUrl?: string
         icon?: Component
         previewType?: ReturnType<typeof FileHelper.getPreviewType>
+        imageError?: boolean
       }
     ) => {
       item.cdnUrl = bucket.getCDNUrl(item)
       item.thumbnailUrl = bucket.getThumbnailUrl(item, 400, 400)
       item.previewType = FileHelper.getPreviewType(item)
       item.icon = FileHelper.getObjectIcon(item)
+      item.imageError = false
       return item
     }
   )
 })
+
+function handleImageError(item: any) {
+  item.imageError = true
+  console.warn('Image failed to load:', item.thumbnailUrl)
+}
 
 function onClickItem(item: StorageListObject) {
   emit('navigate', item)
