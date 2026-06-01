@@ -28,12 +28,6 @@
       },
     ],
   },
-  "migrations": [
-    {
-      "tag": "do-session-revocation-v1",
-      "new_classes": ["SessionRevocationDO"],
-    },
-  ],
   "vars": {
     "ALLOW_REGISTER": "false",
   },
