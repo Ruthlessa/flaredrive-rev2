@@ -37,22 +37,14 @@
         overflow-hidden
       )
         template(#cover)
-          NImage(
+          img(
             v-if='item.previewType === "image"',
-            @click.stop,
             @load='resizeWaterfall',
+            @error='resizeWaterfall',
             :src='item.thumbnailUrl',
-            :preview-src='item.cdnUrl',
             :alt='item.key',
-            w-full,
-            h-auto,
-            max-h-60vh,
-            loading='lazy',
-            lazy,
-            inline-flex,
-            leading-0,
-            :width='item?.customMetadata?.width || undefined',
-            :height='item?.customMetadata?.height || undefined'
+            style='width: 100%; height: auto; display: block;',
+            loading='lazy'
           )
           .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-6, bg='gray-100 dark:gray-800')
             component(:is='item.icon', w='64px', h='64px', opacity-60)
