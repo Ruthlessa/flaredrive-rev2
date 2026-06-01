@@ -29,9 +29,9 @@
       template(#cover)
         .image-container(v-if='item.previewType === "image"', h-full)
           img(
-            v-if='!item.imageError',
+            v-if='!getItemState(item).imageError',
             @click.stop,
-            :src='item.thumbnailUrl',
+            :src='getItemState(item).thumbnailUrl',
             :alt='item.key',
             loading='lazy',
             @error='handleImageError(item)'
@@ -87,6 +87,8 @@ const nmessage = useMessage()
 const bucket = useBucketStore()
 
 const prefs = usePrefsStore()
+
+const itemStateMap = ref<Record<string, { imageError: boolean; hasTriedOriginal: boolean; thumbnailUrl: string }>>({})
 const { gallerySortBy: sortBy, gallerySortOrder: sortOrder } = storeToRefs(prefs)
 const changeSort = (key: GallerySortBy) => {
   if (sortBy.value === key) {
@@ -116,8 +118,6 @@ const list = computed<
     cdnUrl?: string
     icon?: Component
     previewType?: ReturnType<typeof FileHelper.getPreviewType>
-    imageError?: boolean
-    hasTriedOriginal?: boolean
   })[]
 >(() => {
   if (!props.payload) return [] as any
@@ -143,31 +143,46 @@ const list = computed<
         thumbnailUrl?: string
         icon?: Component
         previewType?: ReturnType<typeof FileHelper.getPreviewType>
-        imageError?: boolean
-        hasTriedOriginal?: boolean
       }
     ) => {
       item.cdnUrl = bucket.getCDNUrl(item)
-      item.thumbnailUrl = bucket.getThumbnailUrl(item, 400, 400)
       item.previewType = FileHelper.getPreviewType(item)
       item.icon = FileHelper.getObjectIcon(item)
-      item.imageError = false
-      item.hasTriedOriginal = false
+      // Initialize state if not exists
+      if (!itemStateMap.value[item.key]) {
+        itemStateMap.value[item.key] = {
+          imageError: false,
+          hasTriedOriginal: false,
+          thumbnailUrl: bucket.getThumbnailUrl(item, 400, 400)
+        }
+      }
       return item
     }
   )
 })
 
+const getItemState = (item: any) => {
+  if (!itemStateMap.value[item.key]) {
+    itemStateMap.value[item.key] = {
+      imageError: false,
+      hasTriedOriginal: false,
+      thumbnailUrl: bucket.getThumbnailUrl(item, 400, 400)
+    }
+  }
+  return itemStateMap.value[item.key]
+}
+
 function handleImageError(item: any) {
-  if (!item.hasTriedOriginal) {
+  const state = getItemState(item)
+  if (!state.hasTriedOriginal) {
     // First failure: try to use original image instead of thumbnail
-    item.thumbnailUrl = item.cdnUrl
-    item.hasTriedOriginal = true
-    console.warn('Thumbnail failed, trying original:', item.thumbnailUrl)
+    state.thumbnailUrl = bucket.getCDNUrl(item)
+    state.hasTriedOriginal = true
+    console.warn('Thumbnail failed, trying original:', state.thumbnailUrl)
   } else {
     // Second failure: show error placeholder
-    item.imageError = true
-    console.warn('All image attempts failed:', item.thumbnailUrl)
+    state.imageError = true
+    console.warn('All image attempts failed:', state.thumbnailUrl)
   }
 }
 
