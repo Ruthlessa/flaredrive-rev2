@@ -196,6 +196,11 @@ export const useBucketStore = defineStore('bucket', () => {
     return getCDNUrl(payload, bucketName)
   }
 
+  const useImageFallback = (item: StorageListObject) => {
+    // 如果缩略图加载失败，直接使用原图链接
+    return getCDNUrl(item)
+  }
+
   const uploadHistory = useLocalStorage<StorageListObject[]>('flaredrive:upload-history', [])
   const uploadHistoryMax = computed(() => getUploadHistoryLimit())
 
@@ -455,6 +460,7 @@ export const useBucketStore = defineStore('bucket', () => {
     rename,
     getCDNUrl,
     getThumbnailUrl,
+    useImageFallback,
     uploadHistory,
     // uploadQueue: uploadQueue as PQueue, // 类型问题！！
     addToUploadQueue,

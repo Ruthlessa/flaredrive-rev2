@@ -30,14 +30,18 @@
         NImage(
           v-if='item.previewType === "image"',
           @click.stop,
-          :src='item.thumbnailUrl',
+          :src='getImageSrc(item)',
           :preview-src='item.cdnUrl',
           :alt='item.key',
           lazy,
           object-fit='cover',
           height='240px',
-          width='100%'
+          width='100%',
+          @error='onImageError(item)'
         )
+          template(#placeholder)
+            .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
+              component(:is='item.icon', w-16, h-16, opacity-60)
           template(#fallback)
             .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
               component(:is='item.icon', w-16, h-16, opacity-60)
@@ -89,6 +93,21 @@ const nmessage = useMessage()
 
 const bucket = useBucketStore()
 
+const imageLoadFailed = ref<Set<string>>(new Set())
+
+const getImageSrc = (item: StorageListObject & { thumbnailUrl?: string; cdnUrl?: string }) => {
+  if (imageLoadFailed.value.has(item.key)) {
+    return item.cdnUrl || ''
+  }
+  return item.thumbnailUrl || item.cdnUrl || ''
+}
+
+const onImageError = (item: StorageListObject) => {
+  if (!imageLoadFailed.value.has(item.key)) {
+    imageLoadFailed.value.add(item.key)
+  }
+}
+
 const prefs = usePrefsStore()
 const { gallerySortBy: sortBy, gallerySortOrder: sortOrder } = storeToRefs(prefs)
 const changeSort = (key: GallerySortBy) => {
@@ -117,6 +136,7 @@ const sortActions = computed(() => {
 const list = computed<
   (StorageListObject & {
     cdnUrl?: string
+    thumbnailUrl?: string
     icon?: Component
     previewType?: ReturnType<typeof FileHelper.getPreviewType>
   })[]
