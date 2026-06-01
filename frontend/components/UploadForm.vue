@@ -37,50 +37,47 @@ const formData = reactive({
 const bucket = useBucketStore()
 
 const customRequest = async (payload: UploadCustomRequestOptions) => {
-  console.info('upload', payload)
-  payload.file.status = 'uploading'
-  const timer = setInterval(() => {
-    payload.file.percentage = Math.min(90, (payload.file.percentage || 0) + Math.random() * 10)
-    if (payload.file.percentage >= 90) {
-      clearInterval(timer)
-    }
-  }, 100)
-  bucket
-    .addToUploadQueue(
-      `${formData.prefix.replace(/\/$/, '')}/${(payload.file.file as any)?.webkitRelativePath || payload.file.name}`,
-      payload.file.file!,
-      { ignoreRandom: !!(payload.file.file as any)?.webkitRelativePath }
-    )
-    .promise.then((data) => {
-      if (!data) {
-        throw new Error('No data returned from upload')
-      }
-      payload.file.status = 'finished'
-      payload.file.url = bucket.getCDNUrl(data)
-      if (payload.file.file?.type.startsWith('image/')) {
-        payload.file.thumbnailUrl = bucket.getCDNUrl(data)
-      }
-      payload.file.percentage = 100
-      payload.onFinish()
-      emit('uploaded', data)
-      if (bucket.currentBatchTotal > 1) {
-        if (bucket.currentBatchFinished === bucket.currentBatchTotal) {
-          nmessage.success(`${bucket.currentBatchTotal} files uploaded successfully`)
+    console.info('upload', payload)
+    payload.file.status = 'uploading'
+    const fileKey = `${formData.prefix.replace(/\/$/, '')}/${(payload.file.file as any)?.webkitRelativePath || payload.file.name}`
+    bucket
+      .addToUploadQueue(
+        fileKey,
+        payload.file.file!,
+        { 
+          ignoreRandom: !!(payload.file.file as any)?.webkitRelativePath,
+          onProgress: (progress) => {
+            payload.file.percentage = progress.percentage
+          }
         }
-      } else {
-        nmessage.success(`${payload.file.name} uploaded successfully`)
-      }
-    })
-    .catch((err) => {
-      nmessage.error('Upload failed', err)
-      payload.file.status = 'error'
-      payload.file.percentage = 0
-      payload.onError()
-    })
-    .finally(() => {
-      clearInterval(timer)
-    })
-}
+      )
+      .promise.then((data) => {
+        if (!data) {
+          throw new Error('No data returned from upload')
+        }
+        payload.file.status = 'finished'
+        payload.file.url = bucket.getCDNUrl(data)
+        if (payload.file.file?.type.startsWith('image/')) {
+          payload.file.thumbnailUrl = bucket.getCDNUrl(data)
+        }
+        payload.file.percentage = 100
+        payload.onFinish()
+        emit('uploaded', data)
+        if (bucket.currentBatchTotal > 1) {
+          if (bucket.currentBatchFinished === bucket.currentBatchTotal) {
+            nmessage.success(`${bucket.currentBatchTotal} files uploaded successfully`)
+          }
+        } else {
+          nmessage.success(`${payload.file.name} uploaded successfully`)
+        }
+      })
+      .catch((err) => {
+        nmessage.error('Upload failed', err)
+        payload.file.status = 'error'
+        payload.file.percentage = 0
+        payload.onError()
+      })
+  }
 const uploaderRef = useTemplateRef('uploaderRef')
 function handleStart() {
   uploaderRef.value!.submit()

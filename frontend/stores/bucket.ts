@@ -247,6 +247,7 @@ export const useBucketStore = defineStore('bucket', () => {
     key: string,
     file: File,
     metadata: Record<string, string> = {},
+    progressOptions?: { onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void },
     options?: { ignoreRandom?: boolean }
   ) => {
     const normalizedKey = key.replace(/^\/+/, '')
@@ -286,6 +287,7 @@ export const useBucketStore = defineStore('bucket', () => {
       const { data } = await client.upload(targetKey, file, {
         contentType,
         metadata,
+        onUploadProgress: progressOptions?.onProgress,
       })
       result = (data || {
         key: targetKey,
@@ -309,6 +311,14 @@ export const useBucketStore = defineStore('bucket', () => {
           'Content-Type': contentType,
         },
         timeout: 0,
+        onUploadProgress: (progressEvent) => {
+          if (progressOptions?.onProgress && progressEvent.total) {
+            const loaded = progressEvent.loaded
+            const total = progressEvent.total
+            const percentage = Math.floor((loaded / total) * 100)
+            progressOptions.onProgress({ loaded, total, percentage })
+          }
+        },
       })
 
       // 4. Record History
@@ -397,8 +407,13 @@ export const useBucketStore = defineStore('bucket', () => {
       error: Error
     }[]
   >([])
+  const uploadProgressMap = ref<Record<string, { loaded: number; total: number; percentage: number>>({})
 
-  const addToUploadQueue = (key: string, file: File, options?: { ignoreRandom?: boolean }) => {
+  const updateUploadProgress = (key: string, progress: { loaded: number; total: number; percentage: number }) => {
+    uploadProgressMap.value[key] = progress
+  }
+
+  const addToUploadQueue = (key: string, file: File, options?: { ignoreRandom?: boolean; onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void }) => {
     const normalizedKey = key.replace(/^\/+/, '')
     const existing = pendinUploadList.value.find((item) => item.key === normalizedKey)
     if (existing) {
@@ -419,7 +434,12 @@ export const useBucketStore = defineStore('bucket', () => {
       if (abortController.signal.aborted) {
         throw new Error('Upload aborted')
       }
-      const { data } = await uploadOne(normalizedKey, file, {}, options).catch((error) => {
+      const { data } = await uploadOne(normalizedKey, file, {}, { 
+        onProgress: (progress) => {
+          updateUploadProgress(normalizedKey, progress)
+          options?.onProgress?.(progress)
+        }
+      }, options).catch((error) => {
         console.error('Upload failed', normalizedKey, file, error)
         uploadFailedList.value.push({
           key: normalizedKey,
@@ -465,5 +485,7 @@ export const useBucketStore = defineStore('bucket', () => {
     currentBatchPercentage,
     uploadFailedList,
     togglePublic,
+    uploadProgressMap,
+    updateUploadProgress,
   }
 })
