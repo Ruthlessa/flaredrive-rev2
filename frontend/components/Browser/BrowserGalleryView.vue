@@ -117,6 +117,7 @@ const list = computed<
     icon?: Component
     previewType?: ReturnType<typeof FileHelper.getPreviewType>
     imageError?: boolean
+    hasTriedOriginal?: boolean
   })[]
 >(() => {
   if (!props.payload) return [] as any
@@ -143,6 +144,7 @@ const list = computed<
         icon?: Component
         previewType?: ReturnType<typeof FileHelper.getPreviewType>
         imageError?: boolean
+        hasTriedOriginal?: boolean
       }
     ) => {
       item.cdnUrl = bucket.getCDNUrl(item)
@@ -150,14 +152,23 @@ const list = computed<
       item.previewType = FileHelper.getPreviewType(item)
       item.icon = FileHelper.getObjectIcon(item)
       item.imageError = false
+      item.hasTriedOriginal = false
       return item
     }
   )
 })
 
 function handleImageError(item: any) {
-  item.imageError = true
-  console.warn('Image failed to load:', item.thumbnailUrl)
+  if (!item.hasTriedOriginal) {
+    // First failure: try to use original image instead of thumbnail
+    item.thumbnailUrl = item.cdnUrl
+    item.hasTriedOriginal = true
+    console.warn('Thumbnail failed, trying original:', item.thumbnailUrl)
+  } else {
+    // Second failure: show error placeholder
+    item.imageError = true
+    console.warn('All image attempts failed:', item.thumbnailUrl)
+  }
 }
 
 function onClickItem(item: StorageListObject) {
