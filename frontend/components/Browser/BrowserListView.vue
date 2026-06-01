@@ -61,6 +61,7 @@ const columns = computed(() => {
       width: 40,
       render: (row: StorageListObject) => {
         const previewType = FileHelper.getPreviewType(row)
+        const FileIcon = FileHelper.getObjectIcon(row)
         if (previewType === 'image') {
           return (
             <NImage
@@ -74,10 +75,17 @@ const columns = computed(() => {
               onClick={(e) => {
                 e.stopPropagation()
               }}
-            />
+            >
+              {{
+                fallback: () => (
+                  <NIcon size={40}>
+                    <FileIcon />
+                  </NIcon>
+                )
+              }}
+            </NImage>
           )
         }
-        const FileIcon = FileHelper.getObjectIcon(row)
         return (
           <NIcon size={40}>
             <FileIcon />

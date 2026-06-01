@@ -184,7 +184,8 @@ export const useBucketStore = defineStore('bucket', () => {
     const configuredCdnUrl = bucketCdnMap.value[bucketName]
 
     if (templateUrl && configuredCdnUrl) {
-      const encodedFilePath = encodeURIComponent(filePath)
+      // Encode each path segment individually to preserve slashes
+      const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/')
       return templateUrl
         .replace(/{cdn_base_url}/g, configuredCdnUrl)
         .replace(/{width}/g, width.toString())
