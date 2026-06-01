@@ -36,11 +36,12 @@
           lazy,
           object-fit='cover',
           height='240px',
-          width='100%'
+          width='100%',
+          @error='handleImageError(item)'
         )
           template(#fallback)
             .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
-              component(:is='item.icon', w-16, h-16, opacity-60)
+              component(:is='item.icon', w-16, h-16, opacity-60
         .folder-icon-wrapper(v-else, class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
           component(:is='item.icon', w-16, h-16, opacity-60)
       template(#default)
@@ -88,6 +89,16 @@ const emit = defineEmits<{
 const nmessage = useMessage()
 
 const bucket = useBucketStore()
+
+function handleImageError(item: any) {
+  console.error('[Gallery] Failed to load image:', {
+    key: item.key,
+    thumbnailUrl: item.thumbnailUrl,
+    cdnUrl: item.cdnUrl
+  })
+  // Fallback to showing icon instead of broken image
+  item.previewType = 'unknown'
+}
 
 const prefs = usePrefsStore()
 const { gallerySortBy: sortBy, gallerySortOrder: sortOrder } = storeToRefs(prefs)

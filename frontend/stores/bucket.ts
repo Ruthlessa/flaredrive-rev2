@@ -184,15 +184,22 @@ export const useBucketStore = defineStore('bucket', () => {
     const configuredCdnUrl = bucketCdnMap.value[bucketName]
 
     if (templateUrl && configuredCdnUrl) {
-      // Encode each path segment individually to preserve slashes
-      const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/')
-      return templateUrl
-        .replace(/{cdn_base_url}/g, configuredCdnUrl)
-        .replace(/{width}/g, width.toString())
-        .replace(/{height}/g, height.toString())
-        .replace(/{file_key}/g, encodedFilePath)
+      try {
+        // Encode each path segment individually to preserve slashes
+        const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/')
+        const result = templateUrl
+          .replace(/{cdn_base_url}/g, configuredCdnUrl)
+          .replace(/{width}/g, width.toString())
+          .replace(/{height}/g, height.toString())
+          .replace(/{file_key}/g, encodedFilePath)
+        console.info('[Thumbnail] Generated URL:', result)
+        return result
+      } catch (e) {
+        console.error('[Thumbnail] Error generating thumbnail URL:', e)
+      }
     }
 
+    // Fallback to CDN URL
     return getCDNUrl(payload, bucketName)
   }
 
