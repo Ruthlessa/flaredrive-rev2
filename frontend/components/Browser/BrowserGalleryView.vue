@@ -38,6 +38,9 @@
           height='240px',
           width='100%'
         )
+          template(#fallback)
+            .folder-icon-wrapper(class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
+              component(:is='item.icon', w-16, h-16, opacity-60)
         .folder-icon-wrapper(v-else, class='flex items-center justify-center py-8 bg-gray-100 dark:bg-gray-800 h-60')
           component(:is='item.icon', w-16, h-16, opacity-60)
       template(#default)
