@@ -6,6 +6,7 @@ import { buckets as bucketsTable } from '../../db/schema.js'
 import { generateBucketId, validateBucketConfigInput } from '../utils/bucket-config.js'
 import { getSessionUser } from '../utils/session.js'
 import { createAdapterFromConfig } from '../utils/bucket-utils.js'
+import { invalidateBucketConfigCache } from '../utils/bucket-resolver.js'
 
 export const buckets = new Hono<HonoEnv>()
 
@@ -119,6 +120,7 @@ buckets.put('/:id', async (ctx) => {
     .where(and(eq(bucketsTable.id, id), eq(bucketsTable.ownerUserId, user.id)))
     .run()
 
+  await invalidateBucketConfigCache(ctx, id)
   return ctx.json({ ok: true })
 })
 
@@ -135,6 +137,7 @@ buckets.delete('/:id', async (ctx) => {
     .where(and(eq(bucketsTable.id, id), eq(bucketsTable.ownerUserId, user.id)))
     .run()
 
+  await invalidateBucketConfigCache(ctx, id)
   return ctx.json({ ok: true })
 })
 

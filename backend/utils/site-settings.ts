@@ -242,7 +242,7 @@ export const getResolvedPublicSiteSettings = async (ctx: any) => {
 }
 
 export const RESOLVED_PUBLIC_SETTINGS_CACHE_KEY = 'v1:site:public-settings'
-export const RESOLVED_PUBLIC_SETTINGS_TTL_SECONDS = 60
+export const RESOLVED_PUBLIC_SETTINGS_TTL_SECONDS = 300
 
 export const invalidateResolvedPublicSiteSettingsCache = async (ctx: any) => {
   await cacheDelete(ctx, RESOLVED_PUBLIC_SETTINGS_CACHE_KEY)
