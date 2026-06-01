@@ -9,8 +9,7 @@
           :alt='fileNameParts.name',
           :width='300',
           :height='300',
-          object-fit='contain',
-          text-center
+          :object-fit='"contain"'
         )
       .preview-file-video(v-else-if='previewType === "video"', text-center)
         video(:src='cdnUrl', controls, w-full, h-auto)

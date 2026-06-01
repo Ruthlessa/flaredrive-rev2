@@ -17,7 +17,7 @@
     .grid(gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
       NSkeleton(v-for='_ in 20', h-200px, rounded-lg)
 
-  .gallery-grid(v-else, gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
+  .gallery-grid(v-else, grid, gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
     NCard.file-item-card(
       v-for='(item, index) in list',
       :key='item.key',
@@ -33,10 +33,9 @@
           :src='item.thumbnailUrl',
           :preview-src='item.cdnUrl',
           :alt='item.key',
-          w-full,
-          h-48,
-          object-cover,
-          loading='lazy',
+          :width='400',
+          :height='400',
+          :object-fit='"cover"',
           lazy
         )
         .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-48)
@@ -197,9 +196,19 @@ const onSelectAction = (action: string, item: StorageListObject) => {
 .file-item-card
   :deep(.n-card-cover)
     line-height: 0
+    overflow: hidden
+    height: 192px
+    
     img
+      width: 100%
+      height: 100%
+      display: block
       transition: transform 0.25s ease-in-out
+    
     &:hover
       img
         transform: scale(1.05)
+
+.gallery-grid
+  display: grid
 </style>
