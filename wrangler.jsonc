@@ -3,6 +3,7 @@
   "compatibility_date": "2026-01-14",
   "main": "./backend/index.ts",
   "assets": {
+    "directory": "./dist/assets",
     "not_found_handling": "single-page-application",
   },
   "compatibility_flags": ["nodejs_compat"],
@@ -28,6 +29,12 @@
       },
     ],
   },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["SessionRevocationDO"],
+    },
+  ],
   "vars": {
     "ALLOW_REGISTER": "false",
   },
