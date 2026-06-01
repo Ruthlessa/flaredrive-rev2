@@ -14,60 +14,44 @@
         | {{ item.label }}
 
   .placeholder(v-if='list.length <= 0 && isLoading')
-    .grid(grid-cols-4, gap-3)
+    .grid(gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
       NSkeleton(v-for='_ in 20', h-200px, rounded-lg)
 
-  Waterfall(
-    v-else,
-    ref='waterfallRef',
-    :list='list',
-    :breakpoints='{ 9999: { rowPerView: 4 }, 1160: { rowPerView: 3 }, 900: { rowPerView: 2 }, 600: { rowPerView: 1 } }',
-    :gutter='12',
-    :has-around-gutter='true',
-    :delay='0',
-    :animation-delay='0',
-    :animation-duration='0',
-    :pos-duration='0',
-    min-h='50vh'
-  )
-    template(#item='{ item, url, index }')
-      NCard.file-item-card(
-        @click='onClickItem(item)',
-        :content-style='{ padding: 0 }',
-        :style='item.key === "/" ? { opacity: "50%", pointerEvents: "none" } : { cursor: "pointer" }',
-        overflow-hidden
-      )
-        template(#cover)
-          NImage(
-            v-if='item.previewType === "image"',
-            @click.stop,
-            @load='resizeWaterfall',
-            :src='item.thumbnailUrl',
-            :preview-src='item.cdnUrl',
-            :alt='item.key',
-            w-full,
-            h-auto,
-            max-h-60vh,
-            loading='lazy',
-            lazy,
-            inline-flex,
-            leading-0,
-            :width='item?.customMetadata?.width || undefined',
-            :height='item?.customMetadata?.height || undefined'
-          )
-          .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-6, bg='gray-100 dark:gray-800')
-            component(:is='item.icon', w='64px', h='64px', opacity-60)
-        template(#default)
-          .p-4
-            NEllipsis(text-4, max-w-full) {{ item.key === '/' ? '/(root)' : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
-            .flex(items-center)
-              .file-info.flex-1
-                NText(v-if='item.key.endsWith("/")', depth='3', block, text-3) {{ item.key === '/' ? 'root' : item.key === '../' ? 'parent' : 'folder' }}
-                NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ new Date(item.uploaded || 0).toLocaleString() }}
-                NText(v-if='!item.key.endsWith("/")', depth='3', block, text-3) {{ FileHelper.formatFileSize(item.size) }}
-              .file-actions(v-if='!item.key.endsWith("/")', @click.stop)
-                NDropdown(:options='fileActionOptions', @select='(action) => onSelectAction(action, item)')
-                  NButton(secondary, :render-icon='() => h(IconDots)', circle, size='small')
+  .gallery-grid(v-else, gap-3, grid-cols-2, md:grid-cols-3, lg:grid-cols-4)
+    NCard.file-item-card(
+      v-for='(item, index) in list',
+      :key='item.key',
+      @click='onClickItem(item)',
+      :content-style='{ padding: 0 }',
+      :style='item.key === "/" ? { opacity: "50%", pointerEvents: "none" } : { cursor: "pointer" }',
+      overflow-hidden
+    )
+      template(#cover)
+        NImage(
+          v-if='item.previewType === "image"',
+          @click.stop,
+          :src='item.thumbnailUrl',
+          :preview-src='item.cdnUrl',
+          :alt='item.key',
+          w-full,
+          h-48,
+          object-cover,
+          loading='lazy',
+          lazy
+        )
+        .folder-icon-wrapper(v-else, flex, items-center, justify-center, py-8, bg='gray-100 dark:gray-800', h-48)
+          component(:is='item.icon', w-16, h-16, opacity-60)
+      template(#default)
+        .p-3
+          NEllipsis(text-3, max-w-full, line-clamp-2) {{ item.key === '/' ? '/(root)' : item.key.replace(payload.prefix, '').replace(/\/$/, '') }}
+          .flex(items-center, mt-2)
+            .file-info.flex-1
+              NText(v-if='item.key.endsWith("/")', depth='3', block, text-2) {{ item.key === '/' ? 'root' : item.key === '../' ? 'parent' : 'folder' }}
+              NText(v-if='!item.key.endsWith("/")', depth='3', block, text-2) {{ new Date(item.uploaded || 0).toLocaleString() }}
+              NText(v-if='!item.key.endsWith("/")', depth='3', block, text-2) {{ FileHelper.formatFileSize(item.size) }}
+            .file-actions(v-if='!item.key.endsWith("/")', @click.stop)
+              NDropdown(:options='fileActionOptions', @select='(action) => onSelectAction(action, item)')
+                NButton(secondary, :render-icon='() => h(IconDots)', circle, size='small')
 </template>
 
 <script setup lang="tsx">
@@ -84,8 +68,6 @@ import {
 } from '@tabler/icons-vue'
 import { useMessage } from 'naive-ui'
 import type { Component } from 'vue'
-import { Waterfall } from 'vue-waterfall-plugin-next'
-import 'vue-waterfall-plugin-next/dist/style.css'
 import type { GallerySortBy } from '@/stores/prefs'
 
 const props = defineProps<{
@@ -169,20 +151,6 @@ const list = computed<
     }
   )
 })
-
-const waterfallRef = useTemplateRef('waterfallRef')
-const resizeWaterfall = () => {
-  waterfallRef.value?.renderer()
-}
-useEventListener('resize', resizeWaterfall)
-watch(
-  computed(() => list.value.length),
-  () => {
-    nextTick(() => {
-      resizeWaterfall()
-    })
-  }
-)
 
 function onClickItem(item: StorageListObject) {
   emit('navigate', item)
