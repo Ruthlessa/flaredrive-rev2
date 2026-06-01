@@ -27,19 +27,24 @@ export const normalizeBaseUrl = (value: string) => {
   return value.endsWith('/') ? value : `${value}/`
 }
 
+const cleanUrlField = (value: string) => {
+  if (!value) return ''
+  return value.toString().trim().replace(/^['"`\s]+|['"`\s]+$/g, '')
+}
+
 export const validateBucketConfigInput = (input: any) => {
   const name = (input?.name || '').toString().trim()
   const bucketName = (input?.bucketName || '').toString().trim()
-  const endpointUrl = (input?.endpointUrl || '').toString().trim()
+  const endpointUrl = cleanUrlField(input?.endpointUrl || '')
   const region = (input?.region || 'auto').toString().trim() || 'auto'
   const accessKeyId = (input?.accessKeyId || '').toString().trim()
   const secretAccessKey = (input?.secretAccessKey || '').toString()
-  const cdnBaseUrlRaw = (input?.cdnBaseUrl || '').toString().trim()
+  const cdnBaseUrlRaw = cleanUrlField(input?.cdnBaseUrl || '')
   const cdnBaseUrl = cdnBaseUrlRaw ? normalizeBaseUrl(cdnBaseUrlRaw) : ''
   const forcePathStyle = !!input?.forcePathStyle
   const uploadMethodRaw = (input?.uploadMethod || '').toString().trim()
   const uploadMethod = uploadMethodRaw ? uploadMethodRaw : 'presigned'
-  const edgeThumbnailUrlRaw = (input?.edgeThumbnailUrl || '').toString().trim()
+  const edgeThumbnailUrlRaw = cleanUrlField(input?.edgeThumbnailUrl || '')
   const edgeThumbnailUrl = edgeThumbnailUrlRaw || null
 
   if (!name) return { ok: false as const, error: 'Invalid name' }

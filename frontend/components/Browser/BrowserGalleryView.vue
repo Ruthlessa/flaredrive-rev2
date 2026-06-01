@@ -41,6 +41,7 @@
             v-if='item.previewType === "image"',
             @click.stop,
             @load='resizeWaterfall',
+            @error='handleImageError(item)',
             :src='item.thumbnailUrl',
             :preview-src='item.cdnUrl',
             :alt='item.key',
