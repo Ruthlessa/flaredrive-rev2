@@ -11,10 +11,9 @@
           height='300',
           object-fit='contain',
           lazy
-        >
+        )
           template(#fallback)
             NIcon(size='64'): IconFileUnknown
-        </NImage>
       .preview-file-video(v-else-if='previewType === "video"', text-center)
         video(:src='cdnUrl', controls, w-full, h-auto)
       .preview-file-audio(v-else-if='previewType === "audio"', text-center)
