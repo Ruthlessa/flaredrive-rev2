@@ -8,7 +8,7 @@
     NCard(
       :title='bookName',
       :closable='!!(parentKey && items.length)',
-      @close='$router.push(`/${currentBucket}/${parentKey}`)'
+      @close='goToParentFolder'
     )
       BrowserEmpty(v-if='!items.length')
       .book-pages-container(:data-page-count='items.length')
@@ -26,12 +26,11 @@
               object-fit='contain',
               width='640',
               lazy
-            >
+            )
               template(#placeholder)
                 NSkeleton(h='640px', w='640px', max-w='100%')
               template(#fallback)
                 NIcon(size='64'): IconFileUnknown
-            </NImage>
           .book-page-text(
             v-else-if='item.previewType === "text" || item.previewType === "markdown"',
             max-w-860px,
@@ -50,9 +49,9 @@
           flex-auto,
           w-auto,
           :key='item.key',
-          :content-style='{ padding: "0.5rem 1rem" }',
+          :content-style='folderItemStyle',
           cursor-pointer,
-          @click='() => $router.push(`/${currentBucket}/${item.key === "../" ? parentKey : item.key}`)'
+          @click='navigateToFolder(item)'
         )
           NIcon(:component='FileHelper.getObjectIcon(item)', size='20', mr-2)
           NText {{ item.key.split('/').filter(Boolean).slice(-1)[0] }}
@@ -131,6 +130,21 @@ const items = computed<
       return a.key.localeCompare(b.key)
     })
 })
+
+const router = useRouter()
+
+const folderItemStyle = computed(() => ({
+  padding: '0.5rem 1rem',
+}))
+
+const goToParentFolder = () => {
+  router.push(`/${currentBucket}/${parentKey}`)
+}
+
+const navigateToFolder = (item: any) => {
+  const path = item.key === '../' ? parentKey : item.key
+  router.push(`/${currentBucket}/${path}`)
+}
 
 const folders = computed(() => {
   if (!props.payload) return []

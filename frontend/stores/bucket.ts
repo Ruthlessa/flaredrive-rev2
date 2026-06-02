@@ -432,7 +432,7 @@ export const useBucketStore = defineStore('bucket', () => {
       error: Error
     }[]
   >([])
-  const uploadProgressMap = ref<Record<string, { loaded: number; total: number; percentage: number>>({})
+  const uploadProgressMap = ref<Record<string, { loaded: number; total: number; percentage: number }>>({})
 
   const updateUploadProgress = (key: string, progress: { loaded: number; total: number; percentage: number }) => {
     uploadProgressMap.value[key] = progress
