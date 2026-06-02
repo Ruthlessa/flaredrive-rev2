@@ -24,6 +24,14 @@ export type StorageListResult = {
   moreAfter: string | null
 }
 
+export type IcebergCatalogInfo = {
+  hasIcebergCatalog: boolean
+  catalogUri?: string
+  warehouseName?: string
+  isCompressionEnabled?: boolean
+  targetFileSizeMB?: number
+}
+
 export interface BucketInfo {
   id: string
   name: string
@@ -35,6 +43,7 @@ export interface BucketInfo {
   accessKeyId?: string // Usually masked or not returned fully if secure
   forcePathStyle?: number | boolean
   uploadMethod?: 'presigned' | 'proxy'
+  iceberg?: IcebergCatalogInfo
 }
 
 export class BucketClient {
