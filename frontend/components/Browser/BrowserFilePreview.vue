@@ -74,8 +74,9 @@
           th CDN URL
           td: NA(:href='cdnUrl', target='_blank') {{ cdnUrl }}
 
-      details
-        pre {{ item }}
+      tr
+        th Thumbnail URL
+        td: NA(:href='thumbnailUrl', target='_blank') {{ thumbnailUrl }}
 </template>
 
 <script setup lang="ts">
@@ -113,6 +114,12 @@ const cdnUrl = computed(() => {
   return bucket.getCDNUrl(props.item)
 })
 const previewType = computed(() => FileHelper.getPreviewType(props.item))
+const thumbnailUrl = computed(() => {
+  if (!props.item) return ''
+  const width = Number(props.item.customMetadata?.thumbnail_width) || 256
+  const height = Number(props.item.customMetadata?.thumbnail_height) || 256
+  return bucket.getThumbnailUrl(props.item, width, height)
+})
 
 const rawTextContent = ref<string | null>(null)
 watch(
