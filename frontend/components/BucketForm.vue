@@ -78,6 +78,37 @@ NForm.space-y-4(ref='formRef', :model='formValue', :rules='rules', @submit.preve
       template(#checked) Enabled
       template(#unchecked) Disabled
 
+  .pt-4.mt-2.border-t
+    NAlert(v-if='bucket?.iceberg?.hasIcebergCatalog', type='info', title='Apache Iceberg Catalog', :bordered='false')
+      .space-y-3.mt-3
+        .flex.items-center.justify-between
+          div
+            NText(type='info', depth='3') Catalog URI
+          NButton(size='small', @click='copyToClipboard(bucket.iceberg.catalogUri, "Catalog URI copied!")')
+            template(#icon): NIcon: IconCopy
+        NInput(
+          :value='bucket.iceberg.catalogUri',
+          readonly,
+          size='small',
+          placeholder='Catalog URI will appear here'
+        )
+        .flex.items-center.justify-between
+          div
+            NText(type='info', depth='3') Warehouse Name
+          NButton(size='small', @click='copyToClipboard(bucket.iceberg.warehouseName, "Warehouse name copied!")')
+            template(#icon): NIcon: IconCopy
+        NInput(
+          :value='bucket.iceberg.warehouseName',
+          readonly,
+          size='small',
+          placeholder='Warehouse name will appear here'
+        )
+        .flex.items-center.gap-4.text-sm
+          NText(depth='3')
+            NTag(size='small', type='success') Compression: {{ bucket.iceberg.isCompressionEnabled ? 'Enabled' : 'Disabled' }}
+          NText(depth='3')
+            NTag(size='small', type='info') Target File Size: {{ bucket.iceberg.targetFileSizeMB }}MB
+
   .flex.justify-end.gap-3.pt-4
     NButton(type='error', quaternary, @click='$emit("cancel")') Cancel
     NButton(attr-type='submit', type='primary', :loading='loading') {{ bucket ? 'Save Changes' : 'Create Bucket' }}
@@ -94,6 +125,7 @@ import {
   IconLock,
   IconGlobe,
   IconPhoto,
+  IconCopy,
 } from '@tabler/icons-vue'
 import fexios from 'fexios'
 import { useMessage, type FormInst, type FormRules } from 'naive-ui'
@@ -106,6 +138,17 @@ const emit = defineEmits(['success', 'cancel'])
 const message = useMessage()
 const loading = ref(false)
 const formRef = ref<FormInst | null>(null)
+
+const copyToClipboard = async (text: string | undefined, successMsg: string) => {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    message.success(successMsg)
+  } catch (error) {
+    console.error('Failed to copy:', error)
+    message.error('Failed to copy to clipboard')
+  }
+}
 
 const formValue = reactive({
   name: props.bucket?.name || '',

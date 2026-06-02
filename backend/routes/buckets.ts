@@ -7,6 +7,7 @@ import { generateBucketId, validateBucketConfigInput } from '../utils/bucket-con
 import { getSessionUser } from '../utils/session.js'
 import { createAdapterFromConfig } from '../utils/bucket-utils.js'
 import { invalidateBucketConfigCache } from '../utils/bucket-resolver.js'
+import { getIcebergCatalogInfo } from '../utils/iceberg-catalog.js'
 
 export const buckets = new Hono<HonoEnv>()
 
@@ -37,7 +38,16 @@ buckets.get('/', async (ctx) => {
     .where(eq(bucketsTable.ownerUserId, user.id))
     .all()
 
-  return ctx.json(rows)
+  // Add Iceberg catalog info to each bucket
+  const bucketsWithIceberg = rows.map((row) => {
+    const icebergInfo = getIcebergCatalogInfo(row.endpointUrl, row.bucketName)
+    return {
+      ...row,
+      iceberg: icebergInfo,
+    }
+  })
+
+  return ctx.json(bucketsWithIceberg)
 })
 
 buckets.post('/', async (ctx) => {

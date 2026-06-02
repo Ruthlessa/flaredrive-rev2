@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { NButton, NButtonGroup, NPopconfirm, NTag, NSpace, useMessage, type DataTableColumns } from 'naive-ui'
-import { IconEdit, IconRefresh, IconTrash } from '@tabler/icons-vue'
+import { IconEdit, IconRefresh, IconTrash, IconDatabase } from '@tabler/icons-vue'
 import fexios from 'fexios'
 import type { BucketInfo } from '@/models/BucketClient'
 
@@ -67,6 +67,20 @@ const handleDelete = async (row: BucketInfo) => {
 const columns: DataTableColumns<BucketInfo & { ownerEmail?: string; ownerUserId?: string }> = [
   { title: 'ID', key: 'id', width: 140, ellipsis: true },
   { title: '名称', key: 'name', width: 180, ellipsis: true },
+  {
+    title: 'Iceberg',
+    key: 'iceberg',
+    width: 120,
+    render: (row) => {
+      if (row.iceberg?.hasIcebergCatalog) {
+        return h(NTag, { type: 'success', size: 'small' }, {
+          default: () => 'Yes',
+          icon: () => h(IconDatabase)
+        })
+      }
+      return h(NTag, { type: 'default', size: 'small' }, () => 'No')
+    },
+  },
   {
     title: 'Owner',
     key: 'ownerEmail',
