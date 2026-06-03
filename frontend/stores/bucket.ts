@@ -438,6 +438,14 @@ export const useBucketStore = defineStore('bucket', () => {
     uploadProgressMap.value[key] = progress
   }
 
+  const getUploadProgress = (key: string) => {
+    return uploadProgressMap.value[key] || null
+  }
+
+  const clearUploadFailedList = () => {
+    uploadFailedList.value = []
+  }
+
   const addToUploadQueue = (key: string, file: File, options?: { ignoreRandom?: boolean; onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void }) => {
     const normalizedKey = key.replace(/^\/+/, '')
     const existing = pendinUploadList.value.find((item) => item.key === normalizedKey)
@@ -512,5 +520,8 @@ export const useBucketStore = defineStore('bucket', () => {
     togglePublic,
     uploadProgressMap,
     updateUploadProgress,
+    getUploadProgress,
+    clearUploadFailedList,
+    pendinUploadList,
   }
 })
