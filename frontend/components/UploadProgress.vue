@@ -11,7 +11,9 @@ div.upload-progress(v-if='bucket.currentBatchTotal > 0')
       .file-size {{ formatSize(progress.loaded) }} / {{ formatSize(progress.total) }}
 
   .upload-failed-list(v-if='bucket.uploadFailedList.length > 0')
-    .failed-title 上传失败:
+    .failed-header
+      .failed-title 上传失败:
+      NButton(size='small', type='error', @click='bucket.clearUploadFailedList') 清除
     .failed-item(v-for='item in bucket.uploadFailedList', :key='item.key')
       | {{ getFileName(item.key) }} - {{ item.error.message || 'Unknown error' }}
 </template>
@@ -83,10 +85,15 @@ const formatSize = (bytes: number) => {
   background: #fef0f0
   border-radius: 4px
 
+.failed-header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 8px
+
 .failed-title
   color: #ff4d4f
   font-weight: 500
-  margin-bottom: 8px
 
 .failed-item
   font-size: 12px
