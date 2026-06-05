@@ -392,10 +392,11 @@ export const useBucketStore = defineStore('bucket', () => {
   uploadQueue.on('add', () => {
     console.info('[queue] add')
     pendingUploadCount.value = uploadQueue.size
-    // 添加队列时，如果不处于活跃状态，则重置当前批次的总数和完成数
+    // 添加队列时，如果不处于活跃状态，则重置当前批次的总数和完成数以及进度图
     if (!isUploading.value) {
       currentBatchTotal.value = 0
       currentBatchFinished.value = 0
+      uploadProgressMap.value = {}
     }
     currentBatchTotal.value++
   })
