@@ -57,12 +57,14 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
+  const getDisplayContentType: typeof import('./utils/FileHelper').getDisplayContentType
   const getMediaFileMetadata: typeof import('./utils/FileHelper').getMediaFileMetadata
   const getMediaFileNaturalSize: typeof import('./utils/FileHelper').getMediaFileNaturalSize
   const getObjectIcon: typeof import('./utils/FileHelper').getObjectIcon
   const getPreviewType: typeof import('./utils/FileHelper').getPreviewType
   const getSimpleFileInfoByFile: typeof import('./utils/FileHelper').getSimpleFileInfoByFile
   const getSimpleFileInfoByObject: typeof import('./utils/FileHelper').getSimpleFileInfoByObject
+  const guessContentType: typeof import('./utils/FileHelper').guessContentType
   const h: typeof import('vue').h
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
@@ -417,12 +419,14 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
+    readonly getDisplayContentType: UnwrapRef<typeof import('./utils/FileHelper')['getDisplayContentType']>
     readonly getMediaFileMetadata: UnwrapRef<typeof import('./utils/FileHelper')['getMediaFileMetadata']>
     readonly getMediaFileNaturalSize: UnwrapRef<typeof import('./utils/FileHelper')['getMediaFileNaturalSize']>
     readonly getObjectIcon: UnwrapRef<typeof import('./utils/FileHelper')['getObjectIcon']>
     readonly getPreviewType: UnwrapRef<typeof import('./utils/FileHelper')['getPreviewType']>
     readonly getSimpleFileInfoByFile: UnwrapRef<typeof import('./utils/FileHelper')['getSimpleFileInfoByFile']>
     readonly getSimpleFileInfoByObject: UnwrapRef<typeof import('./utils/FileHelper')['getSimpleFileInfoByObject']>
+    readonly guessContentType: UnwrapRef<typeof import('./utils/FileHelper')['guessContentType']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>

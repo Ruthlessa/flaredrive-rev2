@@ -147,3 +147,4 @@
 - 2026-01-20：新增 D1 `site_settings`，将站点名称/开放注册等设置收束到数据库管理，并提供 public/admin API。
 - 2026-01-20：将随机上传目录/上传并发/上传历史上限/文本预览大小上限从前端 `VITE_*` 编译期配置迁移为 public-settings 运行时下发（D1 -> env -> default），并扩展后台设置编辑能力。
 - 2026-11-10：修复对象列表/预览面板 Type 恒为 unknown 的问题。根因：S3 `ListObjectsV2` 不返回 Content-Type，`S3Adapter.list` 的 `httpMetadata` 因此缺失该字段。方案（两者结合）：后端 `GET /api/bucket/:bucketId/*` 用 `upload_history` 按 bucketId+objectKey 批量回填真实 contentType；前端 `FileHelper` 增加扩展名 MIME 推断兜底（`guessContentType`/`getDisplayContentType`），覆盖非本应用上传的文件。
+- 2026-11-10：PR #16 合并后通过 `wrangler deploy` 部署 master（版本 40bfeab3）至 flaredrive-rev2 Worker，线上 CDN 实测 `200 audio/mpeg` + Range 正常。新发现构建问题：`bun install` 布局下 `vite build` 客户端环境失败（highlight.js 11.11.1 的 `es/index.js` re-export CJS `lib/index.js`，其 `require('./core')` 在 exports 白名单下解析失败，报 `Could not resolve './core' from ?commonjs-external`）；改用 `npm ci` 安装后构建正常。后续如需统一用 bun 构建，需处理该依赖解析问题。
