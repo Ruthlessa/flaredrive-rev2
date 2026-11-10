@@ -146,3 +146,4 @@
 - 2026-01-18：完成前端桶管理 (/admin/buckets)、上传流程重构（Presign+Record）、Raw 访问权限校验、元数据公开性切换 (Toggle Public)。
 - 2026-01-20：新增 D1 `site_settings`，将站点名称/开放注册等设置收束到数据库管理，并提供 public/admin API。
 - 2026-01-20：将随机上传目录/上传并发/上传历史上限/文本预览大小上限从前端 `VITE_*` 编译期配置迁移为 public-settings 运行时下发（D1 -> env -> default），并扩展后台设置编辑能力。
+- 2026-11-10：修复对象列表/预览面板 Type 恒为 unknown 的问题。根因：S3 `ListObjectsV2` 不返回 Content-Type，`S3Adapter.list` 的 `httpMetadata` 因此缺失该字段。方案（两者结合）：后端 `GET /api/bucket/:bucketId/*` 用 `upload_history` 按 bucketId+objectKey 批量回填真实 contentType；前端 `FileHelper` 增加扩展名 MIME 推断兜底（`guessContentType`/`getDisplayContentType`），覆盖非本应用上传的文件。

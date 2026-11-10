@@ -1,4 +1,5 @@
 import { Context, Hono } from 'hono'
+import { and, eq, inArray } from 'drizzle-orm'
 import { HonoEnv } from '../index.js'
 import { getBucketConfigById, parseBucketPath } from '../utils/bucket-resolver.js'
 import { createAdapterFromConfig } from '../utils/bucket-utils.js'
@@ -21,6 +22,42 @@ const getFileName = (ctx: Context) => {
   const fileName = ctx.req.query('fileName') || path.split('/').pop()
   return fileName
 }
+const enrichContentType = async (
+  ctx: Context<HonoEnv>,
+  bucketId: string,
+  objects: { key: string; httpMetadata?: Record<string, any> }[]
+) => {
+  if (!objects.length) return
+  const db = getDb(ctx)
+  const keys = objects.map((o) => o.key)
+  // D1 bind param limit is generous but keep batches modest.
+  const BATCH = 90
+  const contentTypeByKey: Record<string, string> = {}
+  for (let i = 0; i < keys.length; i += BATCH) {
+    const batch = keys.slice(i, i + BATCH)
+    const rows = await db
+      .select({
+        objectKey: uploadHistory.objectKey,
+        contentType: uploadHistory.contentType,
+        createdAt: uploadHistory.createdAt,
+      })
+      .from(uploadHistory)
+      .where(and(eq(uploadHistory.bucketId, bucketId), inArray(uploadHistory.objectKey, batch)))
+      .orderBy(uploadHistory.createdAt)
+      .all()
+    // Later rows (newer uploads) overwrite earlier ones.
+    for (const row of rows) {
+      if (row.contentType) contentTypeByKey[row.objectKey] = row.contentType
+    }
+  }
+  for (const obj of objects) {
+    const contentType = contentTypeByKey[obj.key]
+    if (contentType) {
+      obj.httpMetadata = { ...(obj.httpMetadata || {}), contentType }
+    }
+  }
+}
+
 const getMetadataFromHeaders = (ctx: Context) => {
   const customMetadata = {} as Record<string, string>
   ctx.req.raw.headers.forEach((value, key) => {
@@ -94,6 +131,10 @@ bucket.get('*', async (ctx) => {
 
     const objects = list.objects
     const folders = list.folders
+
+    // S3 ListObjects does not return Content-Type; backfill it from upload history.
+    await enrichContentType(ctx, bucketId, objects)
+
     const hasMore = list.hasMore
     const moreAfter = list.moreAfter
     return ctx.json({

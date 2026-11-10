@@ -59,7 +59,7 @@
           td {{ FileHelper.formatFileSize(item.size) }}
         tr
           th Type
-          td {{ item.httpMetadata?.contentType || 'unknown' }}
+          td {{ FileHelper.getDisplayContentType(item) }}
         tr
           th Last Modified
           td {{ DateHelper.formatLocaleString(item.uploaded) || 'unknown' }}
