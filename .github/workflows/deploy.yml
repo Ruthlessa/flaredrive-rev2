@@ -1,0 +1,53 @@
+name: Deploy (Production)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Migrate & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # vite + @cloudflare/vite-plugin 产出 dist/client 与 dist/flaredrive_rev2
+      # （worker 代码 + 生成的 wrangler.json + .wrangler/deploy/config.json 重定向）。
+      # worker 必须由 vite 打包（common/app-env.ts 顶层使用 import.meta.env），
+      # 因此不能跳过 build 直接 `wrangler deploy --config wrangler.jsonc`。
+      - name: Build
+        run: bun run build
+
+      # 生产 D1 迁移：走 drizzle-kit（d1-http 驱动）。
+      # 不要用 `wrangler d1 migrations apply`：wrangler 的 d1_migrations 表与
+      # drizzle-kit 的 __drizzle_migrations 表不互通，对已用 drizzle-kit 迁移过的
+      # 生产库重跑全部 SQL 会报错。
+      - name: Apply production D1 migrations (drizzle-kit)
+        run: bun run drizzle:push-prod
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_DATABASE_ID: 290366cd-c4db-44c1-95a5-f8144fb86f3f
+
+      # 读取 .wrangler/deploy/config.json 重定向，上传 vite 产物（no_bundle）
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy

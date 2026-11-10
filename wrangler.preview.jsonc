@@ -1,0 +1,50 @@
+// PR 预览环境配置（独立顶层配置文件，供 @cloudflare/vite-plugin 的 configPath 使用）。
+// 触发方式：FLAREDRIVE_PREVIEW=1 bun run build（见 vite.config.ts），随后 `wrangler deploy`
+// 会走 .wrangler/deploy/config.json 重定向，自动部署到本配置。
+//
+// 与生产的隔离点：
+// - 独立 Worker 名称 flaredrive-rev2-preview，不占用生产路由
+// - 独立 D1 数据库 flaredrive-preview（database_id 留空 => 首次 deploy 按名称自动创建，绝不连生产库）
+// - KV 置空：backend/utils/cache.ts 在缺少 KV 绑定时自动降级为内存缓存
+//
+// 预览地址：https://flaredrive-rev2-preview.<account-subdomain>.workers.dev
+{
+  "name": "flaredrive-rev2-preview",
+  "compatibility_date": "2026-01-14",
+  "main": "./backend/index.ts",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+  },
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "D1",
+      "database_name": "flaredrive-preview",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  "kv_namespaces": [],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SESSION_REVOCATION",
+        "class_name": "SessionRevocationDO",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SessionRevocationDO"],
+    },
+  ],
+  "vars": {
+    "ALLOW_REGISTER": "true",
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+    },
+  },
+}

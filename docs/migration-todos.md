@@ -133,6 +133,7 @@
   - 优先缓存：site_settings / bucket config / path_metadata；session user 仅短 TTL 可选
   - 调研报告：见 docs/workers-kv-cache-research.md
 - [ ] 错误处理与统一响应格式（至少做到可定位问题）
+- [x] CI/CD：GitHub Actions（`.github/workflows/deploy.yml` push master 生产部署；`ci.yml` PR 构建校验 + 预览部署并回评 URL）
 - [ ] 文档：更新 README（部署/本地开发/D1 初始化/迁移）
 - [ ] 清理：删除不再使用的旧接口与旧前端耦合代码
 
@@ -146,4 +147,5 @@
 - 2026-01-18：完成前端桶管理 (/admin/buckets)、上传流程重构（Presign+Record）、Raw 访问权限校验、元数据公开性切换 (Toggle Public)。
 - 2026-01-20：新增 D1 `site_settings`，将站点名称/开放注册等设置收束到数据库管理，并提供 public/admin API。
 - 2026-01-20：将随机上传目录/上传并发/上传历史上限/文本预览大小上限从前端 `VITE_*` 编译期配置迁移为 public-settings 运行时下发（D1 -> env -> default），并扩展后台设置编辑能力。
+- 2026-11-10：配置 GitHub Actions CI/CD。生产：push master / 手动触发 → `bun run build` → `drizzle:push-prod`（drizzle-kit 迁移，勿用 `wrangler d1 migrations apply`，两者迁移表 `d1_migrations`/`__drizzle_migrations` 不互通）→ `wrangler deploy`（走 vite 生成的 `.wrangler/deploy/config.json` 重定向，worker 必须由 vite 打包，因 `common/app-env.ts` 顶层使用 `import.meta.env`）。PR 预览：独立顶层配置 `wrangler.preview.jsonc`（`@cloudflare/vite-plugin` 的 `configPath` 无法通过 `wrangler.jsonc` 的 `env.preview` 生效，生成的 dist 配置不带 env 覆盖），由 `FLAREDRIVE_PREVIEW=1 bun run build` 切换；预览资源与生产隔离：独立 Worker `flaredrive-rev2-preview`、独立 D1 `flaredrive-preview`（database_id 留空，首次 deploy 自动创建）、KV 置空（`cache.ts` 降级内存缓存）；预览迁移同样走 drizzle-kit（先 `wrangler d1 list --json` 按名称查 uuid，wrangler d1 命令缺 database_id 不可用）。需在 GitHub 配置 secrets：`CLOUDFLARE_API_TOKEN`（Workers:Edit、D1:Edit 等）、`CLOUDFLARE_ACCOUNT_ID`。
 - 2026-11-10：修复对象列表/预览面板 Type 恒为 unknown 的问题。根因：S3 `ListObjectsV2` 不返回 Content-Type，`S3Adapter.list` 的 `httpMetadata` 因此缺失该字段。方案（两者结合）：后端 `GET /api/bucket/:bucketId/*` 用 `upload_history` 按 bucketId+objectKey 批量回填真实 contentType；前端 `FileHelper` 增加扩展名 MIME 推断兜底（`guessContentType`/`getDisplayContentType`），覆盖非本应用上传的文件。

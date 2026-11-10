@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # 纯构建校验，不依赖任何 secrets，fork PR 也能运行
+      - run: bun run build
+
+  preview:
+    name: Preview Deployment
+    needs: build
+    # fork PR 无法读取仓库 secrets，仅同仓库 PR 部署预览
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # FLAREDRIVE_PREVIEW=1 使 vite-plugin 改用 wrangler.preview.jsonc
+      # （独立 Worker 名 flaredrive-rev2-preview + 独立 D1 flaredrive-preview，KV 置空）
+      - name: Build (preview config)
+        run: bun run build
+        env:
+          FLAREDRIVE_PREVIEW: '1'
+
+      - name: Deploy preview Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+      # 预览库迁移同样走 drizzle-kit（与生产一致，避免 wrangler/dizzle 迁移表不互通问题）。
+      # wrangler d1 命令需要 database_id，而预览库 database_id 留空、由首次 deploy 自动创建，
+      # 因此先按名称查出 uuid 再传给 drizzle-kit。
+      - name: Apply preview D1 migrations (drizzle-kit)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          DB_ID=$(npx wrangler d1 list --json \
+            | jq -r '.[] | select(.database_name=="flaredrive-preview") | .uuid')
+          if [ -z "${DB_ID}" ] || [ "${DB_ID}" = "null" ]; then
+            echo "preview D1 database 'flaredrive-preview' not found after deploy" >&2
+            exit 1
+          fi
+          echo "preview database id: ${DB_ID}"
+          CLOUDFLARE_DATABASE_ID="${DB_ID}" bun run drizzle:push-prod
+
+      - name: Comment preview URL on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          SUB=$(curl -sSf \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/subdomain" \
+            | jq -r '.result.subdomain')
+          URL="https://flaredrive-rev2-preview.${SUB}.workers.dev"
+          MARKER='<!-- flaredrive-preview-bot -->'
+          BODY="${MARKER}"$'\n\n'"### FlareDrive Rev preview"$'\n\n'"Preview Worker: <${URL}>"$'\n\n'"The preview Worker and its D1 database (flaredrive-preview) are shared across PRs; the latest deploy overwrites earlier previews."
+          COMMENTS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments")
+          CID=$(printf '%s' "${COMMENTS}" | jq -r --arg m "${MARKER}" 'map(select(.body | contains($m)) | .id) | first // empty')
+          if [ -n "${CID}" ]; then
+            printf '%s' "${BODY}" | gh api -X PATCH "repos/${REPO}/issues/comments/${CID}" -F body=@-
+          else
+            printf '%s' "${BODY}" | gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@-
+          fi

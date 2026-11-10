@@ -44,7 +44,13 @@ export default defineConfig({
       resolvers: [NaiveUiResolver()],
     }),
     UnoCSS({}),
-    cloudflare(),
+    cloudflare({
+      // PR 预览环境使用独立配置文件（见 wrangler.preview.jsonc），dev/生产默认走 wrangler.jsonc
+      configPath: resolve(
+        import.meta.dirname,
+        process.env.FLAREDRIVE_PREVIEW ? 'wrangler.preview.jsonc' : 'wrangler.jsonc',
+      ),
+    }),
   ],
   build: {
     outDir: 'dist',
