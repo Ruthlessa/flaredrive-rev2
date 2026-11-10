@@ -26,6 +26,71 @@ import {
 export namespace FileHelper {
   export const THUMBNAIL_SIZE = 256
 
+  const EXTENSION_MIME_MAP: Record<string, string> = {
+    // audio
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    flac: 'audio/flac',
+    aac: 'audio/aac',
+    m4a: 'audio/mp4',
+    ogg: 'audio/ogg',
+    // video
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+    // image
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    bmp: 'image/bmp',
+    ico: 'image/vnd.microsoft.icon',
+    // document
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    csv: 'text/csv',
+    // archive
+    zip: 'application/zip',
+    rar: 'application/vnd.rar',
+    '7z': 'application/x-7z-compressed',
+    tar: 'application/x-tar',
+    gz: 'application/gzip',
+    // text / code
+    txt: 'text/plain',
+    md: 'text/markdown',
+    json: 'application/json',
+    html: 'text/html',
+    htm: 'text/html',
+    css: 'text/css',
+    js: 'text/javascript',
+    ts: 'text/typescript',
+    xml: 'application/xml',
+    yaml: 'text/yaml',
+    yml: 'text/yaml',
+  }
+
+  /** Guess MIME type from file name extension; returns '' when unknown */
+  export function guessContentType(fileName: string) {
+    const ext = fileName.toLowerCase().split('.').pop() || ''
+    return EXTENSION_MIME_MAP[ext] || ''
+  }
+
+  /** Content type for display: stored metadata first, then extension guess */
+  export function getDisplayContentType(item: StorageListObject) {
+    const stored = item.httpMetadata?.contentType
+    if (stored) return stored
+    return guessContentType(item.key?.split('/').pop() || '') || 'unknown'
+  }
+
   /**
    * @returns width, height, sha1, thumbnailBlob
    */
@@ -351,7 +416,7 @@ export namespace FileHelper {
       return createNullFileInfo()
     }
     const fullName = item.key.split('/').pop() || ''
-    const contentType = item.httpMetadata?.contentType || 'application/octet-stream'
+    const contentType = item.httpMetadata?.contentType || guessContentType(fullName) || 'application/octet-stream'
     const ext = fullName.toLowerCase().split('.').pop() || contentType.split('/').pop()?.split('-').pop() || ''
     const pureName = fullName.slice(0, fullName.length - ext.length - 1)
     const size = item.size || 0
