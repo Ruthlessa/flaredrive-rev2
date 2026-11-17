@@ -70,7 +70,7 @@
     "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
-    "hono": "^4.11.4",
+    "hono": "^4.13.16",
     "prettier": "^3.8.0",
     "pug": "^3.0.3",
     "sass-embedded": "^1.97.2",
@@ -78,7 +78,7 @@
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^31.0.0",
     "unplugin-vue-router": "^0.19.2",
-    "vite": "^7.3.1",
+    "vite": "^7.3.8",
     "vite-plugin-pwa": "^1.2.0",
     "wrangler": "^4.59.2"
   }
